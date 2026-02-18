@@ -1,0 +1,106 @@
+---
+import PageLayout from '../../layouts/PageLayout.astro';
+import JobCard from '../../components/jobs/JobCard.astro';
+import Pagination from '../../components/common/Pagination.astro';
+import SearchBar from '../../components/islands/SearchBar';
+import FilterPanel from '../../components/islands/FilterPanel';
+import { fetchJobs, fetchFilters } from '../../lib/api';
+
+// Parse query params
+const url = Astro.url;
+const query = url.searchParams.get('q') || '';
+const page = parseInt(url.searchParams.get('page') || '1');
+const location = url.searchParams.get('location') || '';
+const experience = url.searchParams.get('experience') || '';
+const source = url.searchParams.get('source') || '';
+const remote = url.searchParams.get('remote') || '';
+
+// Fetch data from API
+let jobsData;
+let filtersData;
+let error = null;
+
+try {
+  const [jobsResponse, filtersResponse] = await Promise.all([
+    fetchJobs({ q: query, page, location, experience, source, remote: remote || undefined }),
+    fetchFilters()
+  ]);
+  jobsData = jobsResponse;
+  filtersData = filtersResponse;
+} catch (e) {
+  error = e instanceof Error ? e.message : 'Failed to load jobs';
+  jobsData = { data: [], pagination: { page: 1, limit: 20, totalItems: 0, totalPages: 0, hasMore: false } };
+  filtersData = { locations: [], experienceLevels: [], sources: [], skills: [] };
+}
+
+const appliedFilters = Object.fromEntries(url.searchParams);
+const hasFilters = query || location || experience || source || remote;
+---
+
+<PageLayout 
+  title={query ? `Jobs: ${query}` : 'Browse Jobs'} 
+  description={query ? `Search results for ${query}` : 'Browse and search job listings from LinkedIn and Indeed'}
+>
+  <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
+    <!-- Header -->
+    <div class="mb-8">
+      <h1 class="text-3xl font-bold text-slate-900 dark:text-white mb-4">
+        {query ? `Results for "${query}"` : 'Browse Jobs'}
+      </h1>
+      <SearchBar client:load initialQuery={query} />
+    </div>
+    
+    <div class="flex flex-col lg:flex-row gap-8">
+      <!-- Sidebar Filters -->
+      <aside class="lg:w-64 flex-shrink-0">
+        <FilterPanel client:load filters={filtersData} applied={appliedFilters} />
+      </aside>
+      
+      <!-- Main Content -->
+      <main class="flex-1">
+        {error ? (
+          <div class="bg-red-50 dark:bg-red-900/20 border border-red-200 dark:border-red-800 rounded-xl p-6 text-center">
+            <p class="text-red-600 dark:text-red-400">{error}</p>
+            <p class="text-sm text-red-500 dark:text-red-500 mt-2">Make sure the API server is running on http://localhost:8080</p>
+          </div>
+        ) : (
+          <>
+            <!-- Results info -->
+            <div class="flex items-center justify-between mb-4">
+              <p class="text-sm text-slate-600 dark:text-slate-400">
+                {jobsData.pagination.totalItems} jobs found
+                {hasFilters && (
+                  <a href="/jobs" class="ml-2 text-primary-600 hover:underline">Clear filters</a>
+                )}
+              </p>
+            </div>
+            
+            <!-- Job List -->
+            {jobsData.data.length > 0 ? (
+              <div class="space-y-4 mb-8">
+                {jobsData.data.map((job) => (
+                  <JobCard job={job} />
+                ))}
+              </div>
+            ) : (
+              <div class="bg-slate-50 dark:bg-slate-800 rounded-xl p-12 text-center">
+                <svg class="w-16 h-16 mx-auto text-slate-300 dark:text-slate-600 mb-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.5" d="M9.172 16.172a4 4 0 015.656 0M9 10h.01M15 10h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
+                </svg>
+                <h3 class="text-lg font-medium text-slate-900 dark:text-white mb-2">No jobs found</h3>
+                <p class="text-slate-600 dark:text-slate-400">Try adjusting your search or filters</p>
+              </div>
+            )}
+            
+            <!-- Pagination -->
+            <Pagination 
+              currentPage={jobsData.pagination.page} 
+              totalPages={jobsData.pagination.totalPages}
+              baseUrl={url.pathname + url.search}
+            />
+          </>
+        )}
+      </main>
+    </div>
+  </div>
+</PageLayout>

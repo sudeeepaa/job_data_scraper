@@ -1,0 +1,81 @@
+@import "tailwindcss";
+
+/* Enable selector-based dark mode */
+@variant dark (&:where(.dark, .dark *));
+
+/* Register custom colors as Tailwind utilities */
+@theme {
+  --color-primary-50: #eff6ff;
+  --color-primary-100: #dbeafe;
+  --color-primary-200: #bfdbfe;
+  --color-primary-300: #93c5fd;
+  --color-primary-400: #60a5fa;
+  --color-primary-500: #3b82f6;
+  --color-primary-600: #2563eb;
+  --color-primary-700: #1d4ed8;
+  --color-primary-800: #1e40af;
+  --color-primary-900: #1e3a8a;
+
+  --color-surface-dark: #0f172a;
+  --color-surface-card-dark: #1e293b;
+}
+
+/* Dark mode color scheme */
+.dark {
+  color-scheme: dark;
+}
+
+/* Base styles */
+html {
+  scroll-behavior: smooth;
+}
+
+body {
+  font-family: 'Inter', system-ui, sans-serif;
+}
+
+/* Card hover effects */
+.card-hover {
+  transition: all 0.2s ease;
+}
+
+.card-hover:hover {
+  box-shadow: 0 10px 15px -3px rgb(0 0 0 / 0.1);
+  transform: translateY(-2px);
+}
+
+/* Skill badge styles */
+.skill-badge {
+  padding: 0.25rem 0.625rem;
+  font-size: 0.75rem;
+  font-weight: 500;
+  border-radius: 9999px;
+  background-color: #dbeafe;
+  color: #1d4ed8;
+}
+
+.dark .skill-badge {
+  background-color: rgba(29, 78, 216, 0.2);
+  color: #93c5fd;
+}
+
+/* Source badges */
+.source-linkedin {
+  background-color: #dbeafe;
+  color: #1d4ed8;
+}
+
+.dark .source-linkedin {
+  background-color: rgba(29, 78, 216, 0.2);
+  color: #93c5fd;
+}
+
+.source-indeed {
+  background-color: #f3e8ff;
+  color: #7c3aed;
+}
+
+.dark .source-indeed {
+  background-color: rgba(124, 58, 237, 0.2);
+  color: #c4b5fd;
+}

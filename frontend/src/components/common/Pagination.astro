@@ -1,0 +1,93 @@
+---
+interface Props {
+  currentPage: number;
+  totalPages: number;
+  baseUrl: string;
+}
+
+const { currentPage, totalPages, baseUrl } = Astro.props;
+
+// Generate page numbers to show
+const getPageNumbers = () => {
+  const pages: (number | string)[] = [];
+  const delta = 2;
+  
+  for (let i = 1; i <= totalPages; i++) {
+    if (i === 1 || i === totalPages || (i >= currentPage - delta && i <= currentPage + delta)) {
+      pages.push(i);
+    } else if (pages[pages.length - 1] !== '...') {
+      pages.push('...');
+    }
+  }
+  
+  return pages;
+};
+
+const pageNumbers = getPageNumbers();
+const prevPage = currentPage > 1 ? currentPage - 1 : null;
+const nextPage = currentPage < totalPages ? currentPage + 1 : null;
+
+const getPageUrl = (page: number) => {
+  const url = new URL(baseUrl, Astro.url);
+  url.searchParams.set('page', page.toString());
+  return url.pathname + url.search;
+};
+---
+
+{totalPages > 1 && (
+  <nav class="flex items-center justify-center gap-1" aria-label="Pagination">
+    <!-- Previous -->
+    {prevPage ? (
+      <a 
+        href={getPageUrl(prevPage)}
+        class="px-3 py-2 text-sm font-medium text-slate-600 hover:text-slate-900 hover:bg-slate-100 dark:text-slate-400 dark:hover:text-white dark:hover:bg-slate-800 rounded-lg"
+      >
+        ← Previous
+      </a>
+    ) : (
+      <span class="px-3 py-2 text-sm font-medium text-slate-400 dark:text-slate-600 cursor-not-allowed">
+        ← Previous
+      </span>
+    )}
+    
+    <!-- Page numbers -->
+    <div class="hidden sm:flex items-center gap-1">
+      {pageNumbers.map((page) => (
+        page === '...' ? (
+          <span class="px-3 py-2 text-sm text-slate-400">...</span>
+        ) : (
+          <a
+            href={getPageUrl(page as number)}
+            class:list={[
+              'px-3 py-2 text-sm font-medium rounded-lg',
+              page === currentPage
+                ? 'bg-primary-600 text-white'
+                : 'text-slate-600 hover:text-slate-900 hover:bg-slate-100 dark:text-slate-400 dark:hover:text-white dark:hover:bg-slate-800'
+            ]}
+          >
+            {page}
+          </a>
+        )
+      ))}
+    </div>
+    
+    <!-- Mobile page indicator -->
+    <span class="sm:hidden px-3 py-2 text-sm text-slate-600 dark:text-slate-400">
+      Page {currentPage} of {totalPages}
+    </span>
+    
+    <!-- Next -->
+    {nextPage ? (
+      <a 
+        href={getPageUrl(nextPage)}
+        class="px-3 py-2 text-sm font-medium text-slate-600 hover:text-slate-900 hover:bg-slate-100 dark:text-slate-400 dark:hover:text-white dark:hover:bg-slate-800 rounded-lg"
+      >
+        Next →
+      </a>
+    ) : (
+      <span class="px-3 py-2 text-sm font-medium text-slate-400 dark:text-slate-600 cursor-not-allowed">
+        Next →
+      </span>
+    )}
+  </nav>
+)}

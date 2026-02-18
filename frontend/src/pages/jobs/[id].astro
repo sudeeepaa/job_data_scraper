@@ -1,0 +1,205 @@
+---
+import PageLayout from '../../layouts/PageLayout.astro';
+import { fetchJob } from '../../lib/api';
+import type { Job } from '../../types';
+
+const { id } = Astro.params;
+
+let job: Job | null = null;
+let error = null;
+
+try {
+  if (id) {
+    job = await fetchJob(id);
+  }
+} catch (e) {
+  error = e instanceof Error ? e.message : 'Failed to load job';
+}
+
+if (!job && !error) {
+  return Astro.redirect('/404');
+}
+
+const formatDate = (dateStr: string) => {
+  return new Date(dateStr).toLocaleDateString('en-US', { 
+    year: 'numeric', 
+    month: 'long', 
+    day: 'numeric' 
+  });
+};
+
+const formatSalary = (salary: { min: number; max: number; currency: string } | undefined) => {
+  if (!salary) return null;
+  const format = (n: number) => new Intl.NumberFormat('en-US', { style: 'currency', currency: salary.currency, maximumFractionDigits: 0 }).format(n);
+  return `${format(salary.min)} - ${format(salary.max)}`;
+};
+
+// JSON-LD structured data for SEO
+const structuredData = job ? {
+  "@context": "https://schema.org",
+  "@type": "JobPosting",
+  "title": job.title,
+  "description": job.description,
+  "datePosted": job.postedAt,
+  "validThrough": job.expiresAt,
+  "employmentType": job.employmentType?.toUpperCase().replace('-', '_'),
+  "hiringOrganization": {
+    "@type": "Organization",
+    "name": job.company
+  },
+  "jobLocation": {
+    "@type": "Place",
+    "address": {
+      "@type": "PostalAddress",
+      "addressLocality": job.location
+    }
+  },
+  ...(job.salary && {
+    "baseSalary": {
+      "@type": "MonetaryAmount",
+      "currency": job.salary.currency,
+      "value": {
+        "@type": "QuantitativeValue",
+        "minValue": job.salary.min,
+        "maxValue": job.salary.max,
+        "unitText": "YEAR"
+      }
+    }
+  })
+} : null;
+---
+
+<PageLayout 
+  title={job ? `${job.title} at ${job.company}` : 'Job Not Found'}
+  description={job ? `${job.title} position at ${job.company} - ${job.location}` : 'Job listing not found'}
+>
+  {structuredData && (
+    <script type="application/ld+json" set:html={JSON.stringify(structuredData)} />
+  )}
+  
+  <div class="max-w-4xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
+    {error ? (
+      <div class="bg-red-50 dark:bg-red-900/20 border border-red-200 dark:border-red-800 rounded-xl p-6 text-center">
+        <p class="text-red-600 dark:text-red-400">{error}</p>
+        <a href="/jobs" class="text-primary-600 hover:underline mt-2 inline-block">← Back to jobs</a>
+      </div>
+    ) : job && (
+      <>
+        <!-- Breadcrumb -->
+        <nav class="mb-6 text-sm">
+          <ol class="flex items-center gap-2 text-slate-500 dark:text-slate-400">
+            <li><a href="/jobs" class="hover:text-primary-600">Jobs</a></li>
+            <li>/</li>
+            <li class="text-slate-900 dark:text-white truncate">{job.title}</li>
+          </ol>
+        </nav>
+        
+        <!-- Header -->
+        <header class="bg-white dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded-xl p-6 mb-6">
+          <div class="flex items-start justify-between gap-4 mb-4">
+            <div>
+              <h1 class="text-2xl sm:text-3xl font-bold text-slate-900 dark:text-white mb-2">
+                {job.title}
+              </h1>
+              <a 
+                href={`/companies/${job.companySlug}`}
+                class="text-lg text-primary-600 dark:text-primary-400 hover:underline"
+              >
+                {job.company}
+              </a>
+            </div>
+            <span class={`px-3 py-1.5 text-sm font-medium rounded-full ${job.source === 'linkedin' ? 'source-linkedin' : 'source-indeed'}`}>
+              {job.source}
+            </span>
+          </div>
+          
+          <div class="flex flex-wrap gap-4 text-sm text-slate-600 dark:text-slate-400 mb-6">
+            <span class="flex items-center gap-1">
+              <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M17.657 16.657L13.414 20.9a1.998 1.998 0 01-2.827 0l-4.244-4.243a8 8 0 1111.314 0z" />
+              </svg>
+              {job.location}
+            </span>
+            {job.isRemote && (
+              <span class="flex items-center gap-1 text-green-600 dark:text-green-400">
+                <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M3 12l2-2m0 0l7-7 7 7M5 10v10a1 1 0 001 1h3m10-11l2 2m-2-2v10a1 1 0 01-1 1h-3m-6 0a1 1 0 001-1v-4a1 1 0 011-1h2a1 1 0 011 1v4a1 1 0 001 1m-6 0h6" />
+                </svg>
+                Remote
+              </span>
+            )}
+            <span class="flex items-center gap-1">
+              <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M21 13.255A23.931 23.931 0 0112 15c-3.183 0-6.22-.62-9-1.745M16 6V4a2 2 0 00-2-2h-4a2 2 0 00-2 2v2m4 6h.01M5 20h14a2 2 0 002-2V8a2 2 0 00-2-2H5a2 2 0 00-2 2v10a2 2 0 002 2z" />
+              </svg>
+              {job.employmentType}
+            </span>
+            <span class="flex items-center gap-1">
+              <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13 10V3L4 14h7v7l9-11h-7z" />
+              </svg>
+              {job.experienceLevel}
+            </span>
+            <span class="flex items-center gap-1">
+              <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M8 7V3m8 4V3m-9 8h10M5 21h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v12a2 2 0 002 2z" />
+              </svg>
+              Posted {formatDate(job.postedAt)}
+            </span>
+          </div>
+          
+          {formatSalary(job.salary) && (
+            <div class="p-4 bg-green-50 dark:bg-green-900/20 border border-green-200 dark:border-green-800 rounded-lg mb-6">
+              <div class="text-sm text-green-600 dark:text-green-400 mb-1">Salary Range</div>
+              <div class="text-xl font-bold text-green-700 dark:text-green-300">{formatSalary(job.salary)}</div>
+            </div>
+          )}
+          
+          <a 
+            href={job.url}
+            target="_blank"
+            rel="noopener noreferrer"
+            class="inline-flex items-center gap-2 px-6 py-3 bg-primary-600 hover:bg-primary-700 text-white font-medium rounded-lg transition-colors"
+          >
+            Apply on {job.source.charAt(0).toUpperCase() + job.source.slice(1)}
+            <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M10 6H6a2 2 0 00-2 2v10a2 2 0 002 2h10a2 2 0 002-2v-4M14 4h6m0 0v6m0-6L10 14" />
+            </svg>
+          </a>
+        </header>
+        
+        <!-- Skills -->
+        {job.skills && job.skills.length > 0 && (
+          <section class="bg-white dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded-xl p-6 mb-6">
+            <h2 class="text-lg font-semibold text-slate-900 dark:text-white mb-4">Required Skills</h2>
+            <div class="flex flex-wrap gap-2">
+              {job.skills.map((skill) => (
+                <a 
+                  href={`/jobs?q=${encodeURIComponent(skill)}`}
+                  class="skill-badge hover:bg-primary-200 dark:hover:bg-primary-600/30 transition-colors"
+                >
+                  {skill}
+                </a>
+              ))}
+            </div>
+          </section>
+        )}
+        
+        <!-- Description -->
+        <section class="bg-white dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded-xl p-6">
+          <h2 class="text-lg font-semibold text-slate-900 dark:text-white mb-4">Job Description</h2>
+          <div class="prose prose-slate dark:prose-invert max-w-none">
+            <p class="whitespace-pre-line text-slate-600 dark:text-slate-300">{job.description}</p>
+          </div>
+        </section>
+        
+        <!-- Back link -->
+        <div class="mt-8">
+          <a href="/jobs" class="text-primary-600 dark:text-primary-400 hover:underline">
+            ← Back to all jobs
+          </a>
+        </div>
+      </>
+    )}
+  </div>
+</PageLayout>

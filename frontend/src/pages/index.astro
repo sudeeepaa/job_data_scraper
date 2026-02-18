@@ -1,0 +1,280 @@
+---
+import PageLayout from "../layouts/PageLayout.astro";
+import SearchBar from "../components/islands/SearchBar";
+import { fetchJobs, fetchAnalyticsSummary } from "../lib/api";
+import type { JobSummary, AnalyticsSummary } from "../types";
+
+export const prerender = true; // SSG for home page
+
+// For static generation, we'll use placeholder data
+// In production, this would be fetched at build time
+const featuredJobs: JobSummary[] = [];
+const stats: AnalyticsSummary = {
+	totalJobs: 10,
+	totalCompanies: 9,
+	jobsToday: 3,
+	jobsThisWeek: 10,
+	averageSalary: 152000,
+	remoteJobsCount: 6,
+};
+---
+
+<PageLayout
+	title="Find Your Next Opportunity"
+	description="Discover job opportunities from LinkedIn and Indeed. Search, filter, and analyze job listings with JobPulse."
+>
+	<!-- Hero Section -->
+	<section
+		class="relative overflow-hidden bg-gradient-to-b from-primary-50 to-white dark:from-slate-900 dark:to-surface-dark py-20 lg:py-28"
+	>
+		<div class="absolute inset-0 bg-grid-pattern opacity-5"></div>
+		<div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 relative">
+			<div class="text-center max-w-3xl mx-auto">
+				<h1
+					class="text-4xl sm:text-5xl lg:text-6xl font-bold text-slate-900 dark:text-white mb-6"
+				>
+					Find Your Next
+					<span class="text-primary-600 dark:text-primary-400">
+						Dream Job</span
+					>
+				</h1>
+				<p
+					class="text-lg sm:text-xl text-slate-600 dark:text-slate-300 mb-8"
+				>
+					Aggregating thousands of opportunities from LinkedIn and
+					Indeed. Search, filter, and discover your perfect role.
+				</p>
+
+				<div class="flex justify-center mb-8">
+					<SearchBar client:load />
+				</div>
+
+				<div
+					class="flex flex-wrap justify-center gap-4 text-sm text-slate-500 dark:text-slate-400"
+				>
+					<span>Popular searches:</span>
+					<a
+						href="/jobs?q=go+developer"
+						class="text-primary-600 dark:text-primary-400 hover:underline"
+						>Go Developer</a
+					>
+					<a
+						href="/jobs?q=react"
+						class="text-primary-600 dark:text-primary-400 hover:underline"
+						>React</a
+					>
+					<a
+						href="/jobs?q=remote"
+						class="text-primary-600 dark:text-primary-400 hover:underline"
+						>Remote</a
+					>
+					<a
+						href="/jobs?q=machine+learning"
+						class="text-primary-600 dark:text-primary-400 hover:underline"
+						>Machine Learning</a
+					>
+				</div>
+			</div>
+		</div>
+	</section>
+
+	<!-- Stats Section -->
+	<section
+		class="py-12 bg-white dark:bg-surface-dark border-y border-slate-200 dark:border-slate-700"
+	>
+		<div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+			<div class="grid grid-cols-2 md:grid-cols-4 gap-8">
+				<div class="text-center">
+					<div
+						class="text-3xl sm:text-4xl font-bold text-primary-600 dark:text-primary-400"
+					>
+						{stats.totalJobs}+
+					</div>
+					<div
+						class="text-sm text-slate-600 dark:text-slate-400 mt-1"
+					>
+						Active Jobs
+					</div>
+				</div>
+				<div class="text-center">
+					<div
+						class="text-3xl sm:text-4xl font-bold text-primary-600 dark:text-primary-400"
+					>
+						{stats.totalCompanies}
+					</div>
+					<div
+						class="text-sm text-slate-600 dark:text-slate-400 mt-1"
+					>
+						Companies
+					</div>
+				</div>
+				<div class="text-center">
+					<div
+						class="text-3xl sm:text-4xl font-bold text-primary-600 dark:text-primary-400"
+					>
+						{stats.remoteJobsCount}
+					</div>
+					<div
+						class="text-sm text-slate-600 dark:text-slate-400 mt-1"
+					>
+						Remote Jobs
+					</div>
+				</div>
+				<div class="text-center">
+					<div
+						class="text-3xl sm:text-4xl font-bold text-primary-600 dark:text-primary-400"
+					>
+						${(stats.averageSalary / 1000).toFixed(0)}k
+					</div>
+					<div
+						class="text-sm text-slate-600 dark:text-slate-400 mt-1"
+					>
+						Avg Salary
+					</div>
+				</div>
+			</div>
+		</div>
+	</section>
+
+	<!-- Features Section -->
+	<section class="py-16 lg:py-24 bg-slate-50 dark:bg-slate-900">
+		<div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+			<h2
+				class="text-2xl sm:text-3xl font-bold text-center text-slate-900 dark:text-white mb-12"
+			>
+				Why Use JobPulse?
+			</h2>
+
+			<div class="grid md:grid-cols-3 gap-8">
+				<div
+					class="bg-white dark:bg-slate-800 rounded-xl p-6 border border-slate-200 dark:border-slate-700"
+				>
+					<div
+						class="w-12 h-12 bg-primary-100 dark:bg-primary-900/30 rounded-lg flex items-center justify-center mb-4"
+					>
+						<svg
+							class="w-6 h-6 text-primary-600 dark:text-primary-400"
+							fill="none"
+							stroke="currentColor"
+							viewBox="0 0 24 24"
+						>
+							<path
+								stroke-linecap="round"
+								stroke-linejoin="round"
+								stroke-width="2"
+								d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z"
+							></path>
+						</svg>
+					</div>
+					<h3
+						class="font-semibold text-lg text-slate-900 dark:text-white mb-2"
+					>
+						Unified Search
+					</h3>
+					<p class="text-slate-600 dark:text-slate-400">
+						Search across LinkedIn and Indeed from a single
+						interface. No more switching between platforms.
+					</p>
+				</div>
+
+				<div
+					class="bg-white dark:bg-slate-800 rounded-xl p-6 border border-slate-200 dark:border-slate-700"
+				>
+					<div
+						class="w-12 h-12 bg-green-100 dark:bg-green-900/30 rounded-lg flex items-center justify-center mb-4"
+					>
+						<svg
+							class="w-6 h-6 text-green-600 dark:text-green-400"
+							fill="none"
+							stroke="currentColor"
+							viewBox="0 0 24 24"
+						>
+							<path
+								stroke-linecap="round"
+								stroke-linejoin="round"
+								stroke-width="2"
+								d="M9 19v-6a2 2 0 00-2-2H5a2 2 0 00-2 2v6a2 2 0 002 2h2a2 2 0 002-2zm0 0V9a2 2 0 012-2h2a2 2 0 012 2v10m-6 0a2 2 0 002 2h2a2 2 0 002-2m0 0V5a2 2 0 012-2h2a2 2 0 012 2v14a2 2 0 01-2 2h-2a2 2 0 01-2-2z"
+							></path>
+						</svg>
+					</div>
+					<h3
+						class="font-semibold text-lg text-slate-900 dark:text-white mb-2"
+					>
+						Market Analytics
+					</h3>
+					<p class="text-slate-600 dark:text-slate-400">
+						Track trending skills, salary ranges, and job market
+						insights with our analytics dashboard.
+					</p>
+				</div>
+
+				<div
+					class="bg-white dark:bg-slate-800 rounded-xl p-6 border border-slate-200 dark:border-slate-700"
+				>
+					<div
+						class="w-12 h-12 bg-purple-100 dark:bg-purple-900/30 rounded-lg flex items-center justify-center mb-4"
+					>
+						<svg
+							class="w-6 h-6 text-purple-600 dark:text-purple-400"
+							fill="none"
+							stroke="currentColor"
+							viewBox="0 0 24 24"
+						>
+							<path
+								stroke-linecap="round"
+								stroke-linejoin="round"
+								stroke-width="2"
+								d="M3 4a1 1 0 011-1h16a1 1 0 011 1v2.586a1 1 0 01-.293.707l-6.414 6.414a1 1 0 00-.293.707V17l-4 4v-6.586a1 1 0 00-.293-.707L3.293 7.293A1 1 0 013 6.586V4z"
+							></path>
+						</svg>
+					</div>
+					<h3
+						class="font-semibold text-lg text-slate-900 dark:text-white mb-2"
+					>
+						Smart Filters
+					</h3>
+					<p class="text-slate-600 dark:text-slate-400">
+						Filter by location, experience level, salary range, and
+						more to find exactly what you're looking for.
+					</p>
+				</div>
+			</div>
+		</div>
+	</section>
+
+	<!-- CTA Section -->
+	<section class="py-16 lg:py-24 bg-primary-600 dark:bg-primary-700">
+		<div class="max-w-4xl mx-auto px-4 sm:px-6 lg:px-8 text-center">
+			<h2 class="text-2xl sm:text-3xl font-bold text-white mb-4">
+				Ready to Find Your Next Role?
+			</h2>
+			<p class="text-lg text-primary-100 mb-8">
+				Browse thousands of curated job listings from top companies.
+			</p>
+			<a
+				href="/jobs"
+				class="inline-flex items-center gap-2 px-8 py-4 bg-white text-primary-600 font-semibold rounded-lg hover:bg-primary-50 transition-colors"
+			>
+				Browse All Jobs
+				<svg
+					class="w-5 h-5"
+					fill="none"
+					stroke="currentColor"
+					viewBox="0 0 24 24"
+				>
+					<path
+						stroke-linecap="round"
+						stroke-linejoin="round"
+						stroke-width="2"
+						d="M13 7l5 5m0 0l-5 5m5-5H6"></path>
+				</svg>
+			</a>
+		</div>
+	</section>
+</PageLayout>
+
+<style>
+	.bg-grid-pattern {
+		background-image: url("data:image/svg+xml,%3Csvg width='60' height='60' viewBox='0 0 60 60' xmlns='http://www.w3.org/2000/svg'%3E%3Cg fill='none' fill-rule='evenodd'%3E%3Cg fill='%239C92AC' fill-opacity='0.4'%3E%3Cpath d='M36 34v-4h-2v4h-4v2h4v4h2v-4h4v-2h-4zm0-30V0h-2v4h-4v2h4v4h2V6h4V4h-4zM6 34v-4H4v4H0v2h4v4h2v-4h4v-2H6zM6 4V0H4v4H0v2h4v4h2V6h4V4H6z'/%3E%3C/g%3E%3C/g%3E%3C/svg%3E");
+	}
+</style>
