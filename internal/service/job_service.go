@@ -7,69 +7,58 @@ import (
 	"github.com/samuelshine/job-data-scraper/internal/repository"
 )
 
-// JobService provides business logic for job operations
+// JobService handles business logic for jobs and analytics.
 type JobService struct {
-	repo *repository.JobRepository
+	jobRepo   *repository.JobRepo
+	userRepo  *repository.UserRepo
+	cacheRepo *repository.CacheRepo
 }
 
-// NewJobService creates a new job service
-func NewJobService(repo *repository.JobRepository) *JobService {
-	return &JobService{repo: repo}
-}
-
-// ListJobs returns filtered and paginated jobs
-func (s *JobService) ListJobs(ctx context.Context, params domain.JobQueryParams, pag domain.Pagination) ([]domain.JobSummary, domain.PaginationMeta, error) {
-	jobs, total, err := s.repo.ListJobs(ctx, params, pag)
-	if err != nil {
-		return nil, domain.PaginationMeta{}, err
+// NewJobService creates a new job service.
+func NewJobService(jobRepo *repository.JobRepo, userRepo *repository.UserRepo, cacheRepo *repository.CacheRepo) *JobService {
+	return &JobService{
+		jobRepo:   jobRepo,
+		userRepo:  userRepo,
+		cacheRepo: cacheRepo,
 	}
-
-	meta := domain.NewPaginationMeta(pag.Page, pag.Limit, total)
-	return jobs, meta, nil
 }
 
-// GetJob returns a single job by ID
+// ListJobs returns filtered and paginated job listings.
+func (s *JobService) ListJobs(ctx context.Context, params domain.JobQueryParams, pag domain.Pagination) ([]domain.JobSummary, int, error) {
+	return s.jobRepo.ListJobs(ctx, params, pag)
+}
+
+// GetJob returns a single job by ID.
 func (s *JobService) GetJob(ctx context.Context, id string) (*domain.Job, error) {
-	return s.repo.GetJob(ctx, id)
+	return s.jobRepo.GetJob(ctx, id)
 }
 
-// ListCompanies returns all companies
+// ListCompanies returns all companies, optionally filtered.
 func (s *JobService) ListCompanies(ctx context.Context, query string) ([]domain.Company, error) {
-	return s.repo.ListCompanies(ctx, query)
+	return s.jobRepo.ListCompanies(ctx, query)
 }
 
-// GetCompany returns a company with its jobs
-func (s *JobService) GetCompany(ctx context.Context, slug string) (*domain.Company, []domain.JobSummary, error) {
-	company, err := s.repo.GetCompany(ctx, slug)
-	if err != nil {
-		return nil, nil, err
-	}
-	if company == nil {
-		return nil, nil, nil
-	}
-
-	jobs, err := s.repo.GetCompanyJobs(ctx, slug)
-	if err != nil {
-		return nil, nil, err
-	}
-
-	return company, jobs, nil
+// GetCompany returns a company by slug.
+func (s *JobService) GetCompany(ctx context.Context, slug string) (*domain.Company, error) {
+	return s.jobRepo.GetCompany(ctx, slug)
 }
 
-// GetFilterOptions returns available filter values
-func (s *JobService) GetFilterOptions(ctx context.Context) domain.FilterOptions {
-	return s.repo.GetFilterOptions(ctx)
+// GetCompanyJobs returns job summaries for a company.
+func (s *JobService) GetCompanyJobs(ctx context.Context, slug string) ([]domain.JobSummary, error) {
+	return s.jobRepo.GetCompanyJobs(ctx, slug)
 }
 
-// GetTopSkills returns skill frequency counts
-func (s *JobService) GetTopSkills(ctx context.Context, limit int) []domain.SkillCount {
-	if limit <= 0 {
-		limit = 20
-	}
-	return s.repo.GetTopSkills(ctx, limit)
+// GetFilterOptions returns available filter values.
+func (s *JobService) GetFilterOptions(ctx context.Context) (domain.FilterOptions, error) {
+	return s.jobRepo.GetFilterOptions(ctx)
 }
 
-// GetAnalyticsSummary returns high-level stats
-func (s *JobService) GetAnalyticsSummary(ctx context.Context) domain.AnalyticsSummary {
-	return s.repo.GetAnalyticsSummary(ctx)
+// GetTopSkills returns skill frequency counts.
+func (s *JobService) GetTopSkills(ctx context.Context, limit int) ([]domain.SkillCount, error) {
+	return s.jobRepo.GetTopSkills(ctx, limit)
+}
+
+// GetAnalyticsSummary returns high-level stats.
+func (s *JobService) GetAnalyticsSummary(ctx context.Context) (domain.AnalyticsSummary, error) {
+	return s.jobRepo.GetAnalyticsSummary(ctx)
 }

@@ -12,6 +12,7 @@ import (
 // SeedDatabase populates the database with mock data if it's empty.
 // This preserves the original 10 jobs and 9 companies from the in-memory repo.
 func SeedDatabase(ctx context.Context, db *sqlx.DB) error {
+
 	// Check if already seeded
 	var count int
 	if err := db.GetContext(ctx, &count, "SELECT COUNT(*) FROM jobs"); err != nil {
