@@ -12,6 +12,9 @@ import (
 	"github.com/samuelshine/job-data-scraper/internal/database"
 	"github.com/samuelshine/job-data-scraper/internal/repository"
 	"github.com/samuelshine/job-data-scraper/internal/service"
+	"github.com/samuelshine/job-data-scraper/internal/sources"
+	"github.com/samuelshine/job-data-scraper/internal/sources/adzuna"
+	"github.com/samuelshine/job-data-scraper/internal/sources/jsearch"
 )
 
 func main() {
@@ -35,8 +38,34 @@ func main() {
 	userRepo := repository.NewUserRepo(db)
 	cacheRepo := repository.NewCacheRepo(db)
 
+	// Build job source clients (conditional on API keys)
+	var srcs []sources.JobSource
+
+	if cfg.JSearchAPIKey != "" {
+		srcs = append(srcs, jsearch.New(cfg.JSearchAPIKey))
+		log.Printf("✅ JSearch source enabled")
+	} else {
+		log.Printf("⚠️  JSEARCH_API_KEY not set — JSearch source disabled")
+	}
+
+	if cfg.AdzunaAppID != "" && cfg.AdzunaAppKey != "" {
+		srcs = append(srcs, adzuna.New(cfg.AdzunaAppID, cfg.AdzunaAppKey))
+		log.Printf("✅ Adzuna source enabled")
+	} else {
+		log.Printf("⚠️  ADZUNA_APP_ID/KEY not set — Adzuna source disabled")
+	}
+
+	// Build aggregator (nil if no sources)
+	var aggregator *service.Aggregator
+	if len(srcs) > 0 {
+		aggregator = service.NewAggregator(srcs, jobRepo, cacheRepo, cfg.CacheTTL)
+		log.Printf("🔍 Aggregator enabled with %d source(s)", len(srcs))
+	} else {
+		log.Printf("📦 No API keys configured — using seed data only")
+	}
+
 	// Initialize services
-	jobService := service.NewJobService(jobRepo, userRepo, cacheRepo)
+	jobService := service.NewJobService(jobRepo, userRepo, cacheRepo, aggregator)
 	authService := service.NewAuthService(userRepo, cfg.JWTSecret)
 
 	// Initialize handlers

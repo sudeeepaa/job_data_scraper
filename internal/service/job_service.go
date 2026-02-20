@@ -9,18 +9,34 @@ import (
 
 // JobService handles business logic for jobs and analytics.
 type JobService struct {
-	jobRepo   *repository.JobRepo
-	userRepo  *repository.UserRepo
-	cacheRepo *repository.CacheRepo
+	jobRepo    *repository.JobRepo
+	userRepo   *repository.UserRepo
+	cacheRepo  *repository.CacheRepo
+	aggregator *Aggregator
 }
 
 // NewJobService creates a new job service.
-func NewJobService(jobRepo *repository.JobRepo, userRepo *repository.UserRepo, cacheRepo *repository.CacheRepo) *JobService {
+func NewJobService(jobRepo *repository.JobRepo, userRepo *repository.UserRepo, cacheRepo *repository.CacheRepo, aggregator *Aggregator) *JobService {
 	return &JobService{
-		jobRepo:   jobRepo,
-		userRepo:  userRepo,
-		cacheRepo: cacheRepo,
+		jobRepo:    jobRepo,
+		userRepo:   userRepo,
+		cacheRepo:  cacheRepo,
+		aggregator: aggregator,
 	}
+}
+
+// SearchJobs triggers a live search via the aggregator (cache-aware).
+// Returns nil if no aggregator is configured.
+func (s *JobService) SearchJobs(ctx context.Context, query, location string, page int) ([]domain.Job, error) {
+	if s.aggregator == nil {
+		return nil, nil
+	}
+	return s.aggregator.SearchAndStore(ctx, query, location, page)
+}
+
+// HasAggregator returns whether live search is available.
+func (s *JobService) HasAggregator() bool {
+	return s.aggregator != nil
 }
 
 // ListJobs returns filtered and paginated job listings.

@@ -46,6 +46,12 @@ func (h *JobHandler) ListJobs(w http.ResponseWriter, r *http.Request) {
 		params.IsRemote = &remote
 	}
 
+	// If refresh=true and a query is provided, trigger live API fetch
+	if q.Get("refresh") == "true" && params.Query != "" {
+		_, _ = h.svc.SearchJobs(r.Context(), params.Query, params.Location, pag.Page)
+		// Errors from live fetch are non-fatal — we still return cached/stored data below
+	}
+
 	jobs, total, err := h.svc.ListJobs(r.Context(), params, pag)
 	if err != nil {
 		writeJSON(w, http.StatusInternalServerError, map[string]string{"error": "failed to list jobs"})
