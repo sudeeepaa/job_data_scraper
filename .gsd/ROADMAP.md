@@ -12,17 +12,21 @@
 - [ ] "Apply Now" redirect on job detail page
 - [ ] Go concurrency for API fetching
 - [ ] Hybrid caching (24h TTL, manual refresh)
+- [ ] User auth (email/password) with saved jobs
 
 ## Phases
 
 ### Phase 1: Foundation & Data Layer
 **Status**: ⬜ Not Started
-**Objective**: Set up SQLite storage, define unified job schema, implement the caching layer with 24h TTL, and restructure the Go project for clean architecture.
+**Objective**: Set up SQLite storage, define unified job schema, implement the caching layer with 24h TTL, add user auth, and restructure the Go project for clean architecture.
 **Key deliverables**:
-- SQLite database with job/company/search_cache tables
-- Unified `Job` model replacing the current dual-model setup
+- SQLite database with jobs, companies, search_cache, users, saved_jobs tables
+- Unified `Job` model (remove old CLI scraper code, start fresh)
 - Repository layer with cache-aware read/write operations
-- Database migrations and seed logic
+- User auth: email/password registration, login, JWT sessions
+- Auth middleware for protected routes
+- Database migrations (embedded via `go:embed`) and seed data
+- Mock data preserved as seed/fallback
 
 ---
 
@@ -59,6 +63,8 @@
 - **Job detail page** — Full description, skills, salary, "Apply Now" button redirecting to source URL
 - **Market trends page** — Charts and insights derived from aggregated data
 - **Companies page** — Browse by company
+- **Auth pages** — Register, login, profile with saved jobs
+- **Save job button** — Bookmark jobs from list/detail views (auth required)
 - Dark/light mode toggle with system preference detection
 - Responsive design (mobile-first)
 - Loading states, error handling, smooth transitions

@@ -14,10 +14,11 @@
 4. **Modern, user-centric UI** — Minimalistic interface that works for technical and non-technical job seekers, with dark mode, responsive design, and smooth interactions
 5. **Apply redirect** — Each job detail page shows an "Apply Now" button that opens the original job posting URL
 6. **Go-centric backend** — Leverage goroutines for concurrent API fetching, channels, middleware patterns, caching, and clean architecture
+7. **User accounts** — Simple email/password login so users can save/bookmark jobs and track viewed listings
 
 ## Non-Goals (Out of Scope)
 
-- User authentication / accounts
+- ~~User authentication / accounts~~ *(moved to goals)*
 - Job application tracking (just redirect to source)
 - Resume parsing or matching
 - Email notifications or alerts
@@ -53,5 +54,6 @@
 - [ ] UI is responsive, has dark mode, and looks portfolio-worthy
 - [ ] Backend uses Go concurrency (goroutines for parallel API calls)
 - [ ] Data is cached and refreshes only when stale (>24h) on search
+- [ ] Users can register, log in, and save/bookmark jobs
 - [ ] Project runs locally with `go run` + `npm run dev`
 - [ ] Deployable to a free hosting platform
