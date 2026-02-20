@@ -1,6 +1,6 @@
 # ROADMAP.md
 
-> **Current Phase**: Phase 4
+> **Current Phase**: Phase 5
 > **Milestone**: v1.0
 
 ## Must-Haves (from SPEC)
@@ -8,8 +8,8 @@
 - [ ] Real job data from RapidAPI JSearch + Adzuna
 - [x] Search & filter jobs
 - [x] Market trend insights
-- [ ] Modern, responsive UI with dark mode
-- [ ] "Apply Now" redirect on job detail page
+- [x] Modern, responsive UI with dark mode
+- [x] "Apply Now" redirect on job detail page
 - [ ] Go concurrency for API fetching
 - [ ] Hybrid caching (24h TTL, manual refresh)
 - [x] User auth (email/password) with saved jobs
@@ -56,7 +56,7 @@
 ---
 
 ### Phase 4: Frontend Rebuild — Modern UI
-**Status**: ⬜ Not Started
+**Status**: ✅ Complete
 **Objective**: Rebuild the Astro + Preact frontend with a modern, minimalistic design. Focus on search UX, job cards, detail pages with "Apply Now", and market trends visualization.
 **Key deliverables**:
 - **Home/Search page** — Hero search bar, quick filters, results grid
