@@ -1,5 +1,6 @@
 ---
 import ThemeToggle from "../islands/ThemeToggle";
+import AuthNav from "../islands/AuthNav";
 
 const navLinks = [
     { href: "/", label: "Home" },
@@ -50,6 +51,7 @@ const currentPath = Astro.url.pathname;
                     ))
                 }
                 <ThemeToggle client:load />
+                <AuthNav client:load />
             </div>
 
             <!-- Mobile menu button -->
@@ -97,6 +99,9 @@ const currentPath = Astro.url.pathname;
                         </a>
                     ))
                 }
+                <div class="px-3 py-2">
+                    <AuthNav client:load />
+                </div>
             </div>
         </div>
     </nav>

@@ -1,0 +1,29 @@
+---
+import PageLayout from "../../layouts/PageLayout.astro";
+import AuthForm from "../../components/islands/AuthForm";
+---
+
+<PageLayout
+    title="Sign In"
+    description="Sign in to your JobPulse account to access saved jobs"
+>
+    <div class="min-h-[60vh] flex items-center justify-center py-12 px-4">
+        <div class="w-full max-w-md">
+            <div class="text-center mb-8">
+                <h1
+                    class="text-2xl font-bold text-slate-900 dark:text-white mb-2"
+                >
+                    Welcome back
+                </h1>
+                <p class="text-slate-500 dark:text-slate-400">
+                    Sign in to access your saved jobs
+                </p>
+            </div>
+            <div
+                class="bg-white dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded-xl p-6 sm:p-8"
+            >
+                <AuthForm client:load mode="login" />
+            </div>
+        </div>
+    </div>
+</PageLayout>
