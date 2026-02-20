@@ -1,6 +1,6 @@
 # ROADMAP.md
 
-> **Current Phase**: Phase 2 (pending planning)
+> **Current Phase**: Phase 3 (pending planning)
 > **Milestone**: v1.0
 
 ## Must-Haves (from SPEC)
@@ -31,7 +31,7 @@
 ---
 
 ### Phase 2: Job Source Integrations
-**Status**: ⬜ Not Started
+**Status**: ✅ Complete
 **Objective**: Implement Go clients for RapidAPI JSearch and Adzuna, plus an optional web scraper. Use goroutines and channels for concurrent fetching with graceful fallback.
 **Key deliverables**:
 - `sources/jsearch` — RapidAPI JSearch client with response normalization

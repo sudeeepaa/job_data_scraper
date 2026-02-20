@@ -1,17 +1,13 @@
 # STATE.md — Project Memory
 
 ## Last Session Summary
-Phase 1 executed and verified (2026-02-20). Phase 2 planned.
-- Phase 1: 3 waves, 6 tasks, 5 commits — complete and verified
-- Phase 2: researched JSearch + Adzuna APIs, created 3 plans across 2 waves
+Phase 2 executed and verified (2026-02-20).
+- JSearch + Adzuna API clients with full normalization
+- Aggregator with goroutine fan-out/fan-in, dedup, cache, graceful degradation
+- Conditional source loading, refresh param, .env.example, README
 
 ## Current Phase
-Phase 2: Job Source Integrations — Planned, ready for execution
-
-## Plans
-- 2.1: JSearch + Adzuna API clients (wave 1)
-- 2.2: Aggregator service with goroutines (wave 2)
-- 2.3: API wiring + config documentation (wave 2)
+Phase 2: Job Source Integrations — ✅ Complete
 
 ## Next Steps
-- `/execute 2` to run Phase 2 plans
+- `/plan 3` to create Phase 3 plans (Search, Filters & Market Trends API)
