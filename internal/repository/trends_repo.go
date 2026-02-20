@@ -156,11 +156,11 @@ func (r *TrendsRepo) GetSalaryStats(ctx context.Context) (domain.SalaryStats, er
 
 	err := r.db.GetContext(ctx, &stats, `
 		SELECT
-			COALESCE(MIN(salary_min), 0) as "minSalary",
-			COALESCE(MAX(salary_max), 0) as "maxSalary",
-			COALESCE(AVG(salary_min), 0) as "avgMin",
-			COALESCE(AVG(salary_max), 0) as "avgMax",
-			COUNT(*) as "totalWithSalary"
+			COALESCE(MIN(salary_min), 0) as min_salary,
+			COALESCE(MAX(salary_max), 0) as max_salary,
+			COALESCE(CAST(AVG(salary_min) AS INTEGER), 0) as avg_min,
+			COALESCE(CAST(AVG(salary_max) AS INTEGER), 0) as avg_max,
+			COUNT(*) as total_with_salary
 		FROM jobs
 		WHERE salary_min IS NOT NULL OR salary_max IS NOT NULL
 	`)

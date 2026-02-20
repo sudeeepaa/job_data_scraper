@@ -32,10 +32,10 @@ type SourceDistribution struct {
 
 // SalaryStats provides aggregate salary statistics across all jobs.
 type SalaryStats struct {
-	MinSalary       int `json:"minSalary"`
-	MaxSalary       int `json:"maxSalary"`
-	AvgMin          int `json:"avgMin"`
-	AvgMax          int `json:"avgMax"`
-	MedianSalary    int `json:"medianSalary"`
-	TotalWithSalary int `json:"totalWithSalary"`
+	MinSalary       int `json:"minSalary" db:"min_salary"`
+	MaxSalary       int `json:"maxSalary" db:"max_salary"`
+	AvgMin          int `json:"avgMin" db:"avg_min"`
+	AvgMax          int `json:"avgMax" db:"avg_max"`
+	MedianSalary    int `json:"medianSalary" db:"-"`
+	TotalWithSalary int `json:"totalWithSalary" db:"total_with_salary"`
 }
