@@ -1,13 +1,13 @@
 # ROADMAP.md
 
-> **Current Phase**: Phase 3 (pending planning)
+> **Current Phase**: Phase 4
 > **Milestone**: v1.0
 
 ## Must-Haves (from SPEC)
 
 - [ ] Real job data from RapidAPI JSearch + Adzuna
 - [x] Search & filter jobs
-- [ ] Market trend insights
+- [x] Market trend insights
 - [ ] Modern, responsive UI with dark mode
 - [ ] "Apply Now" redirect on job detail page
 - [ ] Go concurrency for API fetching
@@ -44,7 +44,7 @@
 ---
 
 ### Phase 3: Search, Filters & Market Trends API
-**Status**: ⬜ Not Started
+**Status**: ✅ Complete
 **Objective**: Build the search engine with multi-field filtering, pagination, and the market trends analysis pipeline. Wire hybrid caching into the search flow.
 **Key deliverables**:
 - Enhanced search with full-text matching, filters (location, experience, remote, salary, source)
