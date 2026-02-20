@@ -23,7 +23,7 @@ func (h *CompanyHandler) ListCompanies(w http.ResponseWriter, r *http.Request) {
 
 	companies, err := h.svc.ListCompanies(r.Context(), query)
 	if err != nil {
-		writeJSON(w, http.StatusInternalServerError, map[string]string{"error": "failed to list companies"})
+		writeError(w, http.StatusInternalServerError, "failed to list companies")
 		return
 	}
 
@@ -37,17 +37,17 @@ func (h *CompanyHandler) GetCompany(w http.ResponseWriter, r *http.Request) {
 
 	company, err := h.svc.GetCompany(r.Context(), slug)
 	if err != nil {
-		writeJSON(w, http.StatusInternalServerError, map[string]string{"error": "failed to get company"})
+		writeError(w, http.StatusInternalServerError, "failed to get company")
 		return
 	}
 	if company == nil {
-		writeJSON(w, http.StatusNotFound, map[string]string{"error": "company not found"})
+		writeError(w, http.StatusNotFound, "company not found")
 		return
 	}
 
 	jobs, err := h.svc.GetCompanyJobs(r.Context(), slug)
 	if err != nil {
-		writeJSON(w, http.StatusInternalServerError, map[string]string{"error": "failed to get company jobs"})
+		writeError(w, http.StatusInternalServerError, "failed to get company jobs")
 		return
 	}
 

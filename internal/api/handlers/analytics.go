@@ -28,7 +28,7 @@ func (h *AnalyticsHandler) GetTopSkills(w http.ResponseWriter, r *http.Request) 
 
 	skills, err := h.svc.GetTopSkills(r.Context(), limit)
 	if err != nil {
-		writeJSON(w, http.StatusInternalServerError, map[string]string{"error": "failed to get skills"})
+		writeError(w, http.StatusInternalServerError, "failed to get skills")
 		return
 	}
 
@@ -40,7 +40,7 @@ func (h *AnalyticsHandler) GetTopSkills(w http.ResponseWriter, r *http.Request) 
 func (h *AnalyticsHandler) GetSummary(w http.ResponseWriter, r *http.Request) {
 	summary, err := h.svc.GetAnalyticsSummary(r.Context())
 	if err != nil {
-		writeJSON(w, http.StatusInternalServerError, map[string]string{"error": "failed to get summary"})
+		writeError(w, http.StatusInternalServerError, "failed to get summary")
 		return
 	}
 
@@ -59,7 +59,7 @@ func (h *AnalyticsHandler) GetMarketTrends(w http.ResponseWriter, r *http.Reques
 
 	trends, err := h.svc.GetMarketTrends(r.Context(), limit)
 	if err != nil {
-		writeJSON(w, http.StatusInternalServerError, map[string]string{"error": "failed to get trends"})
+		writeError(w, http.StatusInternalServerError, "failed to get trends")
 		return
 	}
 
@@ -71,7 +71,7 @@ func (h *AnalyticsHandler) GetMarketTrends(w http.ResponseWriter, r *http.Reques
 func (h *AnalyticsHandler) GetSourceDistribution(w http.ResponseWriter, r *http.Request) {
 	dist, err := h.svc.GetSourceDistribution(r.Context())
 	if err != nil {
-		writeJSON(w, http.StatusInternalServerError, map[string]string{"error": "failed to get source distribution"})
+		writeError(w, http.StatusInternalServerError, "failed to get source distribution")
 		return
 	}
 
@@ -83,7 +83,7 @@ func (h *AnalyticsHandler) GetSourceDistribution(w http.ResponseWriter, r *http.
 func (h *AnalyticsHandler) GetSalaryStats(w http.ResponseWriter, r *http.Request) {
 	stats, err := h.svc.GetSalaryStats(r.Context())
 	if err != nil {
-		writeJSON(w, http.StatusInternalServerError, map[string]string{"error": "failed to get salary stats"})
+		writeError(w, http.StatusInternalServerError, "failed to get salary stats")
 		return
 	}
 
@@ -94,7 +94,7 @@ func (h *AnalyticsHandler) GetSalaryStats(w http.ResponseWriter, r *http.Request
 // RefreshTrends triggers recomputation of market trend snapshots.
 func (h *AnalyticsHandler) RefreshTrends(w http.ResponseWriter, r *http.Request) {
 	if err := h.svc.RefreshTrends(r.Context()); err != nil {
-		writeJSON(w, http.StatusInternalServerError, map[string]string{"error": "failed to refresh trends"})
+		writeError(w, http.StatusInternalServerError, "failed to refresh trends")
 		return
 	}
 

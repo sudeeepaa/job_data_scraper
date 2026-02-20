@@ -49,6 +49,10 @@ func (r *JobRepo) ListJobs(ctx context.Context, params domain.JobQueryParams, pa
 		where = append(where, "is_remote = :is_remote")
 		args["is_remote"] = *params.IsRemote
 	}
+	if params.EmploymentType != "" {
+		where = append(where, "employment_type = :employment_type")
+		args["employment_type"] = params.EmploymentType
+	}
 
 	whereClause := strings.Join(where, " AND ")
 

@@ -143,6 +143,7 @@ type JobQueryParams struct {
 	SalaryMin       *int
 	IsRemote        *bool
 	Sort            string // date_desc | date_asc | salary_desc | salary_asc
+	EmploymentType  string // full-time | part-time | contract | internship
 }
 
 // Pagination holds pagination parameters.

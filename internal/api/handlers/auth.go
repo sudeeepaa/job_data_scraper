@@ -30,7 +30,7 @@ func NewAuthHandler(authService *service.AuthService, userRepo *repository.UserR
 func (h *AuthHandler) Register(w http.ResponseWriter, r *http.Request) {
 	var req domain.RegisterRequest
 	if err := json.NewDecoder(r.Body).Decode(&req); err != nil {
-		writeJSON(w, http.StatusBadRequest, map[string]string{"error": "invalid request body"})
+		writeError(w, http.StatusBadRequest, "invalid request body")
 		return
 	}
 
@@ -42,7 +42,7 @@ func (h *AuthHandler) Register(w http.ResponseWriter, r *http.Request) {
 		} else if errors.Is(err, service.ErrInvalidEmail) || errors.Is(err, service.ErrWeakPassword) {
 			status = http.StatusBadRequest
 		}
-		writeJSON(w, status, map[string]string{"error": err.Error()})
+		writeError(w, status, err.Error())
 		return
 	}
 
@@ -53,17 +53,17 @@ func (h *AuthHandler) Register(w http.ResponseWriter, r *http.Request) {
 func (h *AuthHandler) Login(w http.ResponseWriter, r *http.Request) {
 	var req domain.LoginRequest
 	if err := json.NewDecoder(r.Body).Decode(&req); err != nil {
-		writeJSON(w, http.StatusBadRequest, map[string]string{"error": "invalid request body"})
+		writeError(w, http.StatusBadRequest, "invalid request body")
 		return
 	}
 
 	resp, err := h.authService.Login(r.Context(), req)
 	if err != nil {
 		if errors.Is(err, service.ErrInvalidCredentials) {
-			writeJSON(w, http.StatusUnauthorized, map[string]string{"error": "invalid email or password"})
+			writeError(w, http.StatusUnauthorized, "invalid email or password")
 			return
 		}
-		writeJSON(w, http.StatusInternalServerError, map[string]string{"error": "internal server error"})
+		writeError(w, http.StatusInternalServerError, "internal server error")
 		return
 	}
 
@@ -74,13 +74,13 @@ func (h *AuthHandler) Login(w http.ResponseWriter, r *http.Request) {
 func (h *AuthHandler) GetProfile(w http.ResponseWriter, r *http.Request) {
 	userID, ok := middleware.GetUserIDFromContext(r.Context())
 	if !ok {
-		writeJSON(w, http.StatusUnauthorized, map[string]string{"error": "unauthorized"})
+		writeError(w, http.StatusUnauthorized, "unauthorized")
 		return
 	}
 
 	user, err := h.authService.GetUserByID(r.Context(), userID)
 	if err != nil || user == nil {
-		writeJSON(w, http.StatusNotFound, map[string]string{"error": "user not found"})
+		writeError(w, http.StatusNotFound, "user not found")
 		return
 	}
 
@@ -91,13 +91,13 @@ func (h *AuthHandler) GetProfile(w http.ResponseWriter, r *http.Request) {
 func (h *AuthHandler) GetSavedJobs(w http.ResponseWriter, r *http.Request) {
 	userID, ok := middleware.GetUserIDFromContext(r.Context())
 	if !ok {
-		writeJSON(w, http.StatusUnauthorized, map[string]string{"error": "unauthorized"})
+		writeError(w, http.StatusUnauthorized, "unauthorized")
 		return
 	}
 
 	jobs, err := h.userRepo.GetSavedJobs(r.Context(), userID)
 	if err != nil {
-		writeJSON(w, http.StatusInternalServerError, map[string]string{"error": "failed to get saved jobs"})
+		writeError(w, http.StatusInternalServerError, "failed to get saved jobs")
 		return
 	}
 
@@ -108,18 +108,18 @@ func (h *AuthHandler) GetSavedJobs(w http.ResponseWriter, r *http.Request) {
 func (h *AuthHandler) SaveJob(w http.ResponseWriter, r *http.Request) {
 	userID, ok := middleware.GetUserIDFromContext(r.Context())
 	if !ok {
-		writeJSON(w, http.StatusUnauthorized, map[string]string{"error": "unauthorized"})
+		writeError(w, http.StatusUnauthorized, "unauthorized")
 		return
 	}
 
 	jobID := chi.URLParam(r, "id")
 	if jobID == "" {
-		writeJSON(w, http.StatusBadRequest, map[string]string{"error": "job ID required"})
+		writeError(w, http.StatusBadRequest, "job ID required")
 		return
 	}
 
 	if err := h.userRepo.SaveJob(r.Context(), userID, jobID); err != nil {
-		writeJSON(w, http.StatusInternalServerError, map[string]string{"error": "failed to save job"})
+		writeError(w, http.StatusInternalServerError, "failed to save job")
 		return
 	}
 
@@ -130,18 +130,18 @@ func (h *AuthHandler) SaveJob(w http.ResponseWriter, r *http.Request) {
 func (h *AuthHandler) UnsaveJob(w http.ResponseWriter, r *http.Request) {
 	userID, ok := middleware.GetUserIDFromContext(r.Context())
 	if !ok {
-		writeJSON(w, http.StatusUnauthorized, map[string]string{"error": "unauthorized"})
+		writeError(w, http.StatusUnauthorized, "unauthorized")
 		return
 	}
 
 	jobID := chi.URLParam(r, "id")
 	if jobID == "" {
-		writeJSON(w, http.StatusBadRequest, map[string]string{"error": "job ID required"})
+		writeError(w, http.StatusBadRequest, "job ID required")
 		return
 	}
 
 	if err := h.userRepo.UnsaveJob(r.Context(), userID, jobID); err != nil {
-		writeJSON(w, http.StatusInternalServerError, map[string]string{"error": "failed to unsave job"})
+		writeError(w, http.StatusInternalServerError, "failed to unsave job")
 		return
 	}
 

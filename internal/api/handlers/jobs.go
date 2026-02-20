@@ -27,12 +27,24 @@ func (h *JobHandler) ListJobs(w http.ResponseWriter, r *http.Request) {
 	limit, _ := strconv.Atoi(q.Get("limit"))
 	pag := domain.NewPagination(page, limit)
 
+	// Map short sort aliases to internal sort values
+	sort := q.Get("sort")
+	switch sort {
+	case "date":
+		sort = "date_desc"
+	case "salary":
+		sort = "salary_desc"
+	case "relevance":
+		sort = "date_desc" // alias — true relevance ranking is out of scope
+	}
+
 	params := domain.JobQueryParams{
 		Query:           q.Get("q"),
 		Location:        q.Get("location"),
 		ExperienceLevel: q.Get("experience"),
 		Source:          q.Get("source"),
-		Sort:            q.Get("sort"),
+		Sort:            sort,
+		EmploymentType:  q.Get("employment_type"),
 	}
 
 	if salaryStr := q.Get("salary_min"); salaryStr != "" {
@@ -54,7 +66,7 @@ func (h *JobHandler) ListJobs(w http.ResponseWriter, r *http.Request) {
 
 	jobs, total, err := h.svc.ListJobs(r.Context(), params, pag)
 	if err != nil {
-		writeJSON(w, http.StatusInternalServerError, map[string]string{"error": "failed to list jobs"})
+		writeError(w, http.StatusInternalServerError, "failed to list jobs")
 		return
 	}
 
@@ -73,11 +85,11 @@ func (h *JobHandler) GetJob(w http.ResponseWriter, r *http.Request) {
 
 	job, err := h.svc.GetJob(r.Context(), id)
 	if err != nil {
-		writeJSON(w, http.StatusInternalServerError, map[string]string{"error": "failed to get job"})
+		writeError(w, http.StatusInternalServerError, "failed to get job")
 		return
 	}
 	if job == nil {
-		writeJSON(w, http.StatusNotFound, map[string]string{"error": "job not found"})
+		writeError(w, http.StatusNotFound, "job not found")
 		return
 	}
 
@@ -89,7 +101,7 @@ func (h *JobHandler) GetJob(w http.ResponseWriter, r *http.Request) {
 func (h *JobHandler) GetFilters(w http.ResponseWriter, r *http.Request) {
 	filters, err := h.svc.GetFilterOptions(r.Context())
 	if err != nil {
-		writeJSON(w, http.StatusInternalServerError, map[string]string{"error": "failed to get filters"})
+		writeError(w, http.StatusInternalServerError, "failed to get filters")
 		return
 	}
 
