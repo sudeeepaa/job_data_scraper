@@ -58,3 +58,60 @@ export async function fetchTopSkills(limit = 20) {
 export async function fetchAnalyticsSummary() {
     return fetchAPI<import('../types').AnalyticsSummary>('/api/v1/analytics/summary');
 }
+
+export async function fetchMarketTrends(limit = 10) {
+    return fetchAPI<{ data: import('../types').MarketTrend[] }>(`/api/v1/analytics/trends?limit=${limit}`);
+}
+
+export async function fetchSourceDistribution() {
+    return fetchAPI<{ data: import('../types').SourceDistribution[] }>('/api/v1/analytics/sources');
+}
+
+export async function fetchSalaryStats() {
+    return fetchAPI<import('../types').SalaryStats>('/api/v1/analytics/salary');
+}
+
+export async function refreshTrends() {
+    return fetchAPI<{ message: string }>('/api/v1/analytics/refresh', { method: 'POST' });
+}
+
+// Auth endpoints
+export async function register(email: string, password: string, name: string) {
+    return fetchAPI<import('../types').AuthResponse>('/api/v1/auth/register', {
+        method: 'POST',
+        body: JSON.stringify({ email, password, name }),
+    });
+}
+
+export async function login(email: string, password: string) {
+    return fetchAPI<import('../types').AuthResponse>('/api/v1/auth/login', {
+        method: 'POST',
+        body: JSON.stringify({ email, password }),
+    });
+}
+
+export async function fetchProfile(token: string) {
+    return fetchAPI<import('../types').UserProfile>('/api/v1/me/', {
+        headers: { Authorization: `Bearer ${token}` },
+    });
+}
+
+export async function fetchSavedJobs(token: string) {
+    return fetchAPI<import('../types').JobSummary[]>('/api/v1/me/saved-jobs', {
+        headers: { Authorization: `Bearer ${token}` },
+    });
+}
+
+export async function saveJob(token: string, jobId: string) {
+    return fetchAPI<{ message: string }>(`/api/v1/me/saved-jobs/${jobId}`, {
+        method: 'POST',
+        headers: { Authorization: `Bearer ${token}` },
+    });
+}
+
+export async function unsaveJob(token: string, jobId: string) {
+    return fetchAPI<{ message: string }>(`/api/v1/me/saved-jobs/${jobId}`, {
+        method: 'DELETE',
+        headers: { Authorization: `Bearer ${token}` },
+    });
+}

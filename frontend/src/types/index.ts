@@ -79,3 +79,51 @@ export interface AnalyticsSummary {
     averageSalary: number;
     remoteJobsCount: number;
 }
+
+// Market trends types (Phase 3 endpoints)
+export interface MarketTrend {
+    skillName: string;
+    mentionCount: number;
+    avgSalaryMin: number;
+    avgSalaryMax: number;
+    snapshotDate: string;
+}
+
+export interface SourceDistribution {
+    source: string;
+    count: number;
+}
+
+export interface SalaryStats {
+    minSalary: number;
+    maxSalary: number;
+    avgMin: number;
+    avgMax: number;
+    medianSalary: number;
+    totalWithSalary: number;
+}
+
+// Auth types
+export interface AuthResponse {
+    token: string;
+    user: UserProfile;
+}
+
+export interface UserProfile {
+    id: string;
+    email: string;
+    name: string;
+    createdAt: string;
+    updatedAt: string;
+}
+
+export interface SavedJobEntry {
+    userId: string;
+    jobId: string;
+    savedAt: string;
+}
+
+export interface APIError {
+    error: string;
+    code: number;
+}
