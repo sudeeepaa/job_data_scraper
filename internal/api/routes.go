@@ -37,6 +37,10 @@ func NewRouter(cfg RouterConfig) *chi.Mux {
 		MaxAge:           300,
 	}))
 
+	// API docs (Swagger UI)
+	r.Get("/docs", DocsHandler())
+	r.Get("/openapi.json", OpenAPIHandler())
+
 	// Health check
 	r.Get("/health", func(w http.ResponseWriter, r *http.Request) {
 		w.Header().Set("Content-Type", "application/json")
