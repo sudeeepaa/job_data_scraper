@@ -1,6 +1,8 @@
-# JobPulse - Job Data Platform
+# JobPulse — Job Data Platform
 
 A full-stack job aggregation platform that pulls real listings from multiple sources, lets users search and filter jobs, shows market trend insights, and redirects users to apply. Built with **Go** backend (goroutines, SQLite, JWT auth) and **Astro** frontend.
+
+> 51 tests | Multi-stage Docker | Zero external dependencies
 
 ## Features
 
@@ -57,6 +59,30 @@ npm run dev
 
 The frontend will be available at `http://localhost:4321`
 
+### Docker
+
+```bash
+# Build and run everything
+docker compose up --build
+
+# Or just the API
+docker build -t jobpulse-api .
+docker run -p 8080:8080 -v jobpulse-data:/data jobpulse-api
+```
+
+### Run Tests
+
+```bash
+# All tests (repo + service + API integration)
+go test ./... -v
+
+# Just unit tests
+go test ./internal/repository/... ./internal/service/... -v
+
+# API integration tests only
+go test ./internal/api/... -v
+```
+
 ## Environment Variables
 
 | Variable | Default | Required | Description |
@@ -93,6 +119,10 @@ Jobs are fetched on-demand when users search with `refresh=true`, cached for 24 
 | `GET /api/v1/companies/:slug` | Get company with jobs |
 | `GET /api/v1/analytics/skills` | Top skills |
 | `GET /api/v1/analytics/summary` | Stats overview |
+| `GET /api/v1/analytics/trends` | Market trends by skill |
+| `GET /api/v1/analytics/sources` | Source distribution |
+| `GET /api/v1/analytics/salary` | Salary statistics |
+| `POST /api/v1/analytics/refresh` | Recompute trends |
 | `GET /api/v1/filters` | Available filter options |
 
 ### Auth
@@ -129,19 +159,20 @@ Jobs are fetched on-demand when users search with `refresh=true`, cached for 24 
 
 ```
 job-data-scraper/
-├── cmd/server/          # Go server entry point
+├── cmd/server/              # Go server entry point
 ├── internal/
-│   ├── api/             # HTTP handlers, middleware & routes
-│   ├── config/          # Environment variable loading
-│   ├── database/        # SQLite + embedded migrations
-│   ├── domain/          # Domain models
-│   ├── repository/      # Data access (SQLite-backed)
-│   ├── service/         # Business logic + aggregator
-│   └── sources/         # Job API clients
-│       ├── jsearch/     # RapidAPI JSearch
-│       └── adzuna/      # Adzuna API
-├── frontend/            # Astro frontend
-├── .env.example         # Environment template
+│   ├── api/                 # HTTP handlers, middleware, routes + integration tests
+│   ├── config/              # Environment variable loading
+│   ├── database/
+│   │   └── migrations/      # Embedded SQL migrations (001, 002)
+│   ├── domain/              # Domain models (Job, User, Company, etc.)
+│   ├── repository/          # Data access layer + unit tests
+│   ├── service/             # Business logic + unit tests
+│   └── sources/             # Job API clients (JSearch, Adzuna)
+├── frontend/                # Astro frontend
+├── Dockerfile               # Multi-stage build (Node → Go → Alpine)
+├── docker-compose.yml       # Full stack deployment
+├── .env.example             # Environment template
 └── README.md
 ```
 

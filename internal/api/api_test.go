@@ -340,7 +340,10 @@ func TestAPI_Auth_DuplicateRegister(t *testing.T) {
 	})
 
 	http.Post(ts.URL+"/api/v1/auth/register", "application/json", bytes.NewReader(body))
-	resp, _ := http.Post(ts.URL+"/api/v1/auth/register", "application/json", bytes.NewReader(body))
+	resp, err := http.Post(ts.URL+"/api/v1/auth/register", "application/json", bytes.NewReader(body))
+	if err != nil {
+		t.Fatalf("duplicate register request failed: %v", err)
+	}
 	defer resp.Body.Close()
 
 	if resp.StatusCode != http.StatusConflict {
@@ -362,7 +365,10 @@ func TestAPI_Auth_LoginWrongPassword(t *testing.T) {
 	body, _ := json.Marshal(domain.LoginRequest{
 		Email: "user@example.com", Password: "wrong",
 	})
-	resp, _ := http.Post(ts.URL+"/api/v1/auth/login", "application/json", bytes.NewReader(body))
+	resp, err := http.Post(ts.URL+"/api/v1/auth/login", "application/json", bytes.NewReader(body))
+	if err != nil {
+		t.Fatalf("login request failed: %v", err)
+	}
 	defer resp.Body.Close()
 
 	if resp.StatusCode != http.StatusUnauthorized {
@@ -426,7 +432,10 @@ func TestAPI_SaveAndUnsaveJob(t *testing.T) {
 	// List saved jobs
 	req2, _ := http.NewRequest("GET", ts.URL+"/api/v1/me/saved-jobs", nil)
 	req2.Header.Set("Authorization", "Bearer "+token)
-	resp2, _ := http.DefaultClient.Do(req2)
+	resp2, err2 := http.DefaultClient.Do(req2)
+	if err2 != nil {
+		t.Fatalf("list saved jobs failed: %v", err2)
+	}
 	defer resp2.Body.Close()
 
 	var result map[string]interface{}
@@ -439,7 +448,10 @@ func TestAPI_SaveAndUnsaveJob(t *testing.T) {
 	// Unsave job
 	req3, _ := http.NewRequest("DELETE", ts.URL+"/api/v1/me/saved-jobs/j1", nil)
 	req3.Header.Set("Authorization", "Bearer "+token)
-	resp3, _ := http.DefaultClient.Do(req3)
+	resp3, err3 := http.DefaultClient.Do(req3)
+	if err3 != nil {
+		t.Fatalf("unsave job failed: %v", err3)
+	}
 	defer resp3.Body.Close()
 
 	if resp3.StatusCode != http.StatusOK {
