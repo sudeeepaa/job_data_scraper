@@ -72,6 +72,10 @@ func NewRouter(cfg RouterConfig) *chi.Mux {
 		r.Route("/analytics", func(r chi.Router) {
 			r.Get("/skills", cfg.AnalyticsHandler.GetTopSkills)
 			r.Get("/summary", cfg.AnalyticsHandler.GetSummary)
+			r.Get("/trends", cfg.AnalyticsHandler.GetMarketTrends)
+			r.Get("/sources", cfg.AnalyticsHandler.GetSourceDistribution)
+			r.Get("/salary", cfg.AnalyticsHandler.GetSalaryStats)
+			r.Post("/refresh", cfg.AnalyticsHandler.RefreshTrends)
 		})
 
 		// Filters (public)

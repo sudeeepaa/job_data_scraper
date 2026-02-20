@@ -29,3 +29,13 @@ type SourceDistribution struct {
 	Source string `json:"source"`
 	Count  int    `json:"count"`
 }
+
+// SalaryStats provides aggregate salary statistics across all jobs.
+type SalaryStats struct {
+	MinSalary       int `json:"minSalary"`
+	MaxSalary       int `json:"maxSalary"`
+	AvgMin          int `json:"avgMin"`
+	AvgMax          int `json:"avgMax"`
+	MedianSalary    int `json:"medianSalary"`
+	TotalWithSalary int `json:"totalWithSalary"`
+}

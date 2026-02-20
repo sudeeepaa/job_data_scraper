@@ -37,6 +37,7 @@ func main() {
 	jobRepo := repository.NewJobRepo(db)
 	userRepo := repository.NewUserRepo(db)
 	cacheRepo := repository.NewCacheRepo(db)
+	trendsRepo := repository.NewTrendsRepo(db)
 
 	// Build job source clients (conditional on API keys)
 	var srcs []sources.JobSource
@@ -65,7 +66,7 @@ func main() {
 	}
 
 	// Initialize services
-	jobService := service.NewJobService(jobRepo, userRepo, cacheRepo, aggregator)
+	jobService := service.NewJobService(jobRepo, userRepo, cacheRepo, trendsRepo, aggregator)
 	authService := service.NewAuthService(userRepo, cfg.JWTSecret)
 
 	// Initialize handlers

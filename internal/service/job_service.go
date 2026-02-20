@@ -12,15 +12,17 @@ type JobService struct {
 	jobRepo    *repository.JobRepo
 	userRepo   *repository.UserRepo
 	cacheRepo  *repository.CacheRepo
+	trendsRepo *repository.TrendsRepo
 	aggregator *Aggregator
 }
 
 // NewJobService creates a new job service.
-func NewJobService(jobRepo *repository.JobRepo, userRepo *repository.UserRepo, cacheRepo *repository.CacheRepo, aggregator *Aggregator) *JobService {
+func NewJobService(jobRepo *repository.JobRepo, userRepo *repository.UserRepo, cacheRepo *repository.CacheRepo, trendsRepo *repository.TrendsRepo, aggregator *Aggregator) *JobService {
 	return &JobService{
 		jobRepo:    jobRepo,
 		userRepo:   userRepo,
 		cacheRepo:  cacheRepo,
+		trendsRepo: trendsRepo,
 		aggregator: aggregator,
 	}
 }
@@ -77,4 +79,24 @@ func (s *JobService) GetTopSkills(ctx context.Context, limit int) ([]domain.Skil
 // GetAnalyticsSummary returns high-level stats.
 func (s *JobService) GetAnalyticsSummary(ctx context.Context) (domain.AnalyticsSummary, error) {
 	return s.jobRepo.GetAnalyticsSummary(ctx)
+}
+
+// GetMarketTrends returns the latest market trend snapshot.
+func (s *JobService) GetMarketTrends(ctx context.Context, limit int) ([]domain.MarketTrend, error) {
+	return s.trendsRepo.GetTrends(ctx, limit)
+}
+
+// GetSourceDistribution returns job counts grouped by source.
+func (s *JobService) GetSourceDistribution(ctx context.Context) ([]domain.SourceDistribution, error) {
+	return s.trendsRepo.GetSourceDistribution(ctx)
+}
+
+// GetSalaryStats returns aggregate salary statistics.
+func (s *JobService) GetSalaryStats(ctx context.Context) (domain.SalaryStats, error) {
+	return s.trendsRepo.GetSalaryStats(ctx)
+}
+
+// RefreshTrends recomputes and stores a market trends snapshot.
+func (s *JobService) RefreshTrends(ctx context.Context) error {
+	return s.trendsRepo.ComputeAndStoreSnapshot(ctx)
 }
