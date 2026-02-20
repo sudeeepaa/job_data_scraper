@@ -1,23 +1,23 @@
 # ROADMAP.md
 
-> **Current Phase**: Not started
+> **Current Phase**: Phase 2 (pending planning)
 > **Milestone**: v1.0
 
 ## Must-Haves (from SPEC)
 
 - [ ] Real job data from RapidAPI JSearch + Adzuna
-- [ ] Search & filter jobs
+- [x] Search & filter jobs
 - [ ] Market trend insights
 - [ ] Modern, responsive UI with dark mode
 - [ ] "Apply Now" redirect on job detail page
 - [ ] Go concurrency for API fetching
 - [ ] Hybrid caching (24h TTL, manual refresh)
-- [ ] User auth (email/password) with saved jobs
+- [x] User auth (email/password) with saved jobs
 
 ## Phases
 
 ### Phase 1: Foundation & Data Layer
-**Status**: ⬜ Not Started
+**Status**: ✅ Complete
 **Objective**: Set up SQLite storage, define unified job schema, implement the caching layer with 24h TTL, add user auth, and restructure the Go project for clean architecture.
 **Key deliverables**:
 - SQLite database with jobs, companies, search_cache, users, saved_jobs tables

@@ -1,21 +1,24 @@
 # STATE.md — Project Memory
 
 ## Last Session Summary
-Project initialized and Phase 1 planned (2026-02-20).
-- Codebase mapped: 2 subsystems, 11 components, 11 debt items
-- SPEC.md finalized with 7 goals + auth requirement
-- ROADMAP.md: 5 phases from foundation to deployment
-- Phase 1 discussed: 5 new ADRs (cleanup, sqlx, migrations, auth, seed)
-- Phase 1 planned: 3 plans across 3 waves
+Phase 1 executed and verified (2026-02-20).
+- 3 waves, 6 tasks, 4 commits
+- Legacy code removed, SQLite database foundation established
+- Domain models refactored with db tags, repository layer (SQLite-backed)
+- Auth system (register, login, JWT), middleware, protected routes
+- All 13 API endpoints verified end-to-end
 
 ## Current Phase
-Phase 1: Foundation & Data Layer — Planned, ready for execution
+Phase 1: Foundation & Data Layer — ✅ Complete
 
-## Plans
-- 1.1: Project Cleanup & Database Foundation (wave 1)
-- 1.2: Domain Models, Repository & Seed Data (wave 2)
-- 1.3: Auth System, Service Layer & API Wiring (wave 3)
+## Next Steps
+- `/plan 2` to create Phase 2 plans (Job Source Integrations)
+- Or `/execute 2` if plans already exist
 
-## Session Context
-- Next step: `/execute 1` to run Phase 1 plans
-- Go packages confirmed: modernc.org/sqlite v1.44.4, sqlx v1.4.0, jwt/v5 v5.3.1
+## Key Files Modified
+- `internal/database/` — Migration system + schema
+- `internal/domain/` — Refactored models with db tags
+- `internal/repository/` — SQLite-backed repos (job, user, cache, seed)
+- `internal/service/` — Auth service + rewired job service
+- `internal/api/` — Auth handler, middleware, updated routes
+- `cmd/server/main.go` — SQLite boot sequence
