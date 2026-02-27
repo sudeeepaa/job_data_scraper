@@ -18,12 +18,11 @@ services:
 
   frontend:
     build:
-      context: .
-      dockerfile: frontend/Dockerfile
+      context: ./frontend
     ports:
       - "4321:4321"
     environment:
-      - API_URL=http://api:8080
+      - PUBLIC_API_URL=http://api:8080
     depends_on:
       api:
         condition: service_healthy
