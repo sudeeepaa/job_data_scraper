@@ -41,14 +41,18 @@ type sourceResult struct {
 }
 
 // SearchAndStore fans out to all sources, deduplicates, and persists results.
-// If the cache is fresh, it returns stored data without calling APIs.
-func (a *Aggregator) SearchAndStore(ctx context.Context, query, location string, page int) ([]domain.Job, error) {
+// If forceRefresh is false and the cache is fresh, it returns stored data without calling APIs.
+func (a *Aggregator) SearchAndStore(ctx context.Context, query, location string, page int, forceRefresh bool) ([]domain.Job, error) {
 	cacheKey := buildCacheKey(query, location, page)
 
 	// Check cache freshness
-	fresh, err := a.cacheRepo.IsCacheFresh(ctx, cacheKey, a.cacheTTL)
-	if err != nil {
-		log.Printf("⚠️  Cache check failed: %v", err)
+	fresh := false
+	if !forceRefresh {
+		var err error
+		fresh, err = a.cacheRepo.IsCacheFresh(ctx, cacheKey, a.cacheTTL)
+		if err != nil {
+			log.Printf("⚠️  Cache check failed: %v", err)
+		}
 	}
 	if fresh {
 		log.Printf("📦 Cache hit for %q (fresh)", cacheKey)
@@ -70,7 +74,11 @@ func (a *Aggregator) SearchAndStore(ctx context.Context, query, location string,
 		return fullJobs, nil
 	}
 
-	log.Printf("🔍 Cache miss for %q, fetching from %d sources", cacheKey, len(a.sources))
+	if forceRefresh {
+		log.Printf("🔄 Force refresh for %q, fetching from %d sources", cacheKey, len(a.sources))
+	} else {
+		log.Printf("🔍 Cache miss for %q, fetching from %d sources", cacheKey, len(a.sources))
+	}
 
 	if len(a.sources) == 0 {
 		return nil, fmt.Errorf("aggregator: no sources configured")

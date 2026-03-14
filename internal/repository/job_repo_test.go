@@ -120,6 +120,40 @@ func TestJobRepo_UpsertAndGetByID(t *testing.T) {
 	}
 }
 
+func TestJobRepo_UpsertJob_UpdatesLocationOnConflict(t *testing.T) {
+	db := testDB(t)
+	repo := NewJobRepo(db)
+	ctx := context.Background()
+
+	job := &domain.Job{
+		ID: "test-location", Title: "ML Engineer", Description: "Initial",
+		Company: "TestCo", CompanySlug: "testco", Location: "Bengaluru",
+		PostedAt: time.Now(), Source: "jsearch", SourceURL: "https://example.com/1",
+		Skills: domain.StringSlice{"Python"}, EmploymentType: "full-time", ExperienceLevel: "mid",
+	}
+
+	if err := repo.UpsertJob(ctx, job); err != nil {
+		t.Fatalf("first UpsertJob failed: %v", err)
+	}
+
+	job.Location = "Bengaluru, Karnataka, India"
+	job.Description = "Updated"
+	if err := repo.UpsertJob(ctx, job); err != nil {
+		t.Fatalf("second UpsertJob failed: %v", err)
+	}
+
+	got, err := repo.GetJob(ctx, job.ID)
+	if err != nil {
+		t.Fatalf("GetJob failed: %v", err)
+	}
+	if got == nil {
+		t.Fatal("GetJob returned nil")
+	}
+	if got.Location != "Bengaluru, Karnataka, India" {
+		t.Fatalf("Location = %q, want updated location", got.Location)
+	}
+}
+
 func TestJobRepo_Search_Filters(t *testing.T) {
 	db := testDB(t)
 	repo := NewJobRepo(db)
@@ -135,6 +169,11 @@ func TestJobRepo_Search_Filters(t *testing.T) {
 		{
 			name:    "filter by location",
 			params:  domain.JobQueryParams{Location: "San Francisco"},
+			wantMin: 2, wantMax: 2,
+		},
+		{
+			name:    "filter by multi-part location",
+			params:  domain.JobQueryParams{Location: "San Francisco, CA"},
 			wantMin: 2, wantMax: 2,
 		},
 		{
@@ -175,6 +214,40 @@ func TestJobRepo_Search_Filters(t *testing.T) {
 				t.Errorf("total = %d, want between %d and %d", total, tt.wantMin, tt.wantMax)
 			}
 		})
+	}
+}
+
+func TestJobRepo_ListJobs_LocationTermsMatchExpandedLocation(t *testing.T) {
+	db := testDB(t)
+	repo := NewJobRepo(db)
+	ctx := context.Background()
+	intPtr := func(v int) *int { return &v }
+
+	job := &domain.Job{
+		ID: "j-india", Title: "Machine Learning Engineer", Description: "Build models",
+		Company: "AI India", CompanySlug: "ai-india", Location: "Bengaluru, Karnataka, India",
+		SalaryMin: intPtr(120000), SalaryMax: intPtr(180000), SalaryCurrency: "USD",
+		PostedAt: time.Now(), Source: "jsearch", SourceURL: "https://example.com/j-india",
+		Skills: domain.StringSlice{"Python", "PyTorch"}, IsRemote: true,
+		EmploymentType: "full-time", ExperienceLevel: "mid",
+	}
+
+	if err := repo.UpsertJob(ctx, job); err != nil {
+		t.Fatalf("UpsertJob failed: %v", err)
+	}
+
+	jobs, total, err := repo.ListJobs(ctx, domain.JobQueryParams{
+		Query:    "Machine Learning Engineer",
+		Location: "Bengaluru, India",
+	}, domain.NewPagination(1, 20))
+	if err != nil {
+		t.Fatalf("ListJobs failed: %v", err)
+	}
+	if total != 1 {
+		t.Fatalf("total = %d, want 1", total)
+	}
+	if len(jobs) != 1 {
+		t.Fatalf("len(jobs) = %d, want 1", len(jobs))
 	}
 }
 

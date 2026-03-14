@@ -8,7 +8,7 @@ interface Props {
 
 const {
   title,
-  description = "Discover job opportunities from LinkedIn and Indeed. Search, filter, and analyze job listings with our powerful job data platform.",
+  description = "JobHuntly helps people discover standout roles, explore companies, and manage their next move with confidence.",
 } = Astro.props;
 ---
 
@@ -22,24 +22,12 @@ const {
     <link rel="preconnect" href="https://fonts.googleapis.com" />
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
     <link
-      href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap"
+      href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;500;600;700;800&display=swap"
       rel="stylesheet"
     />
-    <title>{title} | JobPulse</title>
-
-    <!-- Dark mode script (prevent flash) -->
-    <script is:inline>
-      const theme =
-        localStorage.getItem("theme") ||
-        (window.matchMedia("(prefers-color-scheme: dark)").matches
-          ? "dark"
-          : "light");
-      document.documentElement.classList.toggle("dark", theme === "dark");
-    </script>
+    <title>{title} | JobHuntly</title>
   </head>
-  <body
-    class="min-h-screen flex flex-col bg-white text-slate-900 dark:bg-slate-900 dark:text-slate-100"
-  >
+  <body class="min-h-screen bg-[var(--jh-bg)] text-slate-900 antialiased">
     <slot />
   </body>
 </html>

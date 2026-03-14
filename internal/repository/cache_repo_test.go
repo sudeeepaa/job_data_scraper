@@ -40,6 +40,34 @@ func TestCacheRepo_SetAndGet(t *testing.T) {
 	}
 }
 
+func TestCacheRepo_SetAssignsFetchedAtWhenZero(t *testing.T) {
+	db := testDB(t)
+	repo := NewCacheRepo(db)
+	ctx := context.Background()
+
+	entry := &domain.SearchCacheEntry{
+		QueryHash:   "auto-time",
+		QueryText:   "site reliability engineer",
+		Filters:     "{}",
+		ResultCount: 7,
+	}
+
+	if err := repo.SetCacheEntry(ctx, entry); err != nil {
+		t.Fatalf("SetCacheEntry failed: %v", err)
+	}
+
+	got, err := repo.GetCacheEntry(ctx, "auto-time")
+	if err != nil {
+		t.Fatalf("GetCacheEntry failed: %v", err)
+	}
+	if got == nil {
+		t.Fatal("GetCacheEntry returned nil")
+	}
+	if got.FetchedAt.IsZero() {
+		t.Fatal("FetchedAt was not populated")
+	}
+}
+
 func TestCacheRepo_GetNotFound(t *testing.T) {
 	db := testDB(t)
 	repo := NewCacheRepo(db)

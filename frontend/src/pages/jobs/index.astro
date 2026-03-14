@@ -1,106 +1,157 @@
 ---
-import PageLayout from '../../layouts/PageLayout.astro';
-import JobCard from '../../components/jobs/JobCard.astro';
-import Pagination from '../../components/common/Pagination.astro';
-import SearchBar from '../../components/islands/SearchBar';
-import FilterPanel from '../../components/islands/FilterPanel';
-import { fetchJobs, fetchFilters } from '../../lib/api';
+import PageLayout from "../../layouts/PageLayout.astro";
+import JobCard from "../../components/jobs/JobCard.astro";
+import Pagination from "../../components/common/Pagination.astro";
+import { fetchFilters, fetchJobs } from "../../lib/api";
 
-// Parse query params
 const url = Astro.url;
-const query = url.searchParams.get('q') || '';
-const page = parseInt(url.searchParams.get('page') || '1');
-const location = url.searchParams.get('location') || '';
-const experience = url.searchParams.get('experience') || '';
-const source = url.searchParams.get('source') || '';
-const remote = url.searchParams.get('remote') || '';
+const query = url.searchParams.get("q") || "";
+const page = parseInt(url.searchParams.get("page") || "1");
+const experience = url.searchParams.get("experience") || "";
+const source = url.searchParams.get("source") || "";
+const employmentType = url.searchParams.get("employment_type") || "";
+const remote = url.searchParams.get("remote") || "";
+const sort = url.searchParams.get("sort") || "date";
+const view = url.searchParams.get("view") === "list" ? "list" : "grid";
 
-// Fetch data from API
-let jobsData;
-let filtersData;
+let jobsData = { data: [], pagination: { page: 1, limit: 20, totalItems: 0, totalPages: 0, hasMore: false } };
+let filtersData = { locations: [], experienceLevels: [], sources: [], skills: [] };
 let error = null;
 
 try {
-  const [jobsResponse, filtersResponse] = await Promise.all([
-    fetchJobs({ q: query, page, location, experience, source, remote: remote || undefined }),
-    fetchFilters()
-  ]);
-  jobsData = jobsResponse;
-  filtersData = filtersResponse;
+    const [jobsResponse, filtersResponse] = await Promise.all([
+        fetchJobs({
+            q: query,
+            page,
+            experience,
+            source,
+            employment_type: employmentType,
+            remote: remote || undefined,
+            sort,
+        }),
+        fetchFilters(),
+    ]);
+    jobsData = jobsResponse;
+    filtersData = filtersResponse;
 } catch (e) {
-  error = e instanceof Error ? e.message : 'Failed to load jobs';
-  jobsData = { data: [], pagination: { page: 1, limit: 20, totalItems: 0, totalPages: 0, hasMore: false } };
-  filtersData = { locations: [], experienceLevels: [], sources: [], skills: [] };
+    error = e instanceof Error ? e.message : "Failed to load jobs";
 }
-
-const appliedFilters = Object.fromEntries(url.searchParams);
-const hasFilters = query || location || experience || source || remote;
 ---
 
-<PageLayout 
-  title={query ? `Jobs: ${query}` : 'Browse Jobs'} 
-  description={query ? `Search results for ${query}` : 'Browse and search job listings from LinkedIn and Indeed'}
->
-  <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
-    <!-- Header -->
-    <div class="mb-8">
-      <h1 class="text-3xl font-bold text-slate-900 dark:text-white mb-4">
-        {query ? `Results for "${query}"` : 'Browse Jobs'}
-      </h1>
-      <SearchBar client:load initialQuery={query} />
-    </div>
-    
-    <div class="flex flex-col lg:flex-row gap-8">
-      <!-- Sidebar Filters -->
-      <aside class="lg:w-64 flex-shrink-0">
-        <FilterPanel client:load filters={filtersData} applied={appliedFilters} />
-      </aside>
-      
-      <!-- Main Content -->
-      <main class="flex-1">
-        {error ? (
-          <div class="bg-red-50 dark:bg-red-900/20 border border-red-200 dark:border-red-800 rounded-xl p-6 text-center">
-            <p class="text-red-600 dark:text-red-400">{error}</p>
-            <p class="text-sm text-red-500 dark:text-red-500 mt-2">Make sure the API server is running on http://localhost:8080</p>
-          </div>
-        ) : (
-          <>
-            <!-- Results info -->
-            <div class="flex items-center justify-between mb-4">
-              <p class="text-sm text-slate-600 dark:text-slate-400">
-                {jobsData.pagination.totalItems} jobs found
-                {hasFilters && (
-                  <a href="/jobs" class="ml-2 text-primary-600 hover:underline">Clear filters</a>
+<PageLayout title={query ? `Find Jobs: ${query}` : "Find Jobs"} description="Browse roles using the JobHuntly job board experience.">
+    <section class="border-b border-slate-200 bg-[linear-gradient(180deg,#f3f6ff_0%,#fbfcff_100%)]">
+        <div class="mx-auto max-w-[1180px] px-6 py-14">
+            <h1 class="text-6xl font-extrabold tracking-[-0.07em] text-slate-900">Find Jobs</h1>
+            <form action="/jobs" method="GET" class="jh-panel mt-10 grid gap-4 p-4 lg:grid-cols-[1fr_auto]">
+                <input type="search" name="q" value={query} placeholder="Job title or keyword" class="rounded-[1.2rem] border border-transparent bg-white px-5 py-4 text-lg text-slate-900 outline-none" />
+                <button type="submit" class="jh-button justify-center px-7 py-4">Search</button>
+            </form>
+            <p class="mt-5 text-base text-slate-400">Popular : UI Designer, UX Researcher, Android, Admin</p>
+        </div>
+    </section>
+
+    <section class="mx-auto max-w-[1180px] px-6 py-14">
+        <div class="grid gap-10 lg:grid-cols-[18rem_1fr]">
+            <aside class="space-y-6">
+                <form action="/jobs" method="GET" class="jh-card p-6">
+                    <input type="hidden" name="q" value={query} />
+                    <div>
+                        <h2 class="text-[1.85rem] font-extrabold tracking-[-0.05em] text-slate-900">Filter Jobs</h2>
+                        <p class="mt-2 text-lg text-slate-500">Refine your results to match the role you want.</p>
+                    </div>
+
+                    <div class="mt-8 space-y-6">
+                        <div>
+                            <label class="mb-2 block text-base font-semibold text-slate-700">Type of Employment</label>
+                            <select name="employment_type" class="w-full rounded-[1.2rem] border border-[var(--jh-border)] bg-white px-4 py-3 text-base text-slate-900">
+                                <option value="">All types</option>
+                                <option value="full-time" selected={employmentType === "full-time"}>Full-time</option>
+                                <option value="part-time" selected={employmentType === "part-time"}>Part-time</option>
+                                <option value="contract" selected={employmentType === "contract"}>Contract</option>
+                                <option value="internship" selected={employmentType === "internship"}>Internship</option>
+                            </select>
+                        </div>
+
+                        <div>
+                            <label class="mb-2 block text-base font-semibold text-slate-700">Experience Level</label>
+                            <select name="experience" class="w-full rounded-[1.2rem] border border-[var(--jh-border)] bg-white px-4 py-3 text-base text-slate-900">
+                                <option value="">Any level</option>
+                                {filtersData.experienceLevels.map((option) => (
+                                    <option value={option} selected={option === experience}>{option}</option>
+                                ))}
+                            </select>
+                        </div>
+
+                        <div>
+                            <label class="mb-2 block text-base font-semibold text-slate-700">Source</label>
+                            <select name="source" class="w-full rounded-[1.2rem] border border-[var(--jh-border)] bg-white px-4 py-3 text-base text-slate-900">
+                                <option value="">All sources</option>
+                                {filtersData.sources.map((option) => (
+                                    <option value={option} selected={option === source}>{option}</option>
+                                ))}
+                            </select>
+                        </div>
+
+                        <label class="flex items-center gap-3 rounded-[1.2rem] bg-[var(--jh-soft)] px-4 py-4 text-base font-semibold text-slate-700">
+                            <input type="checkbox" name="remote" value="true" checked={remote === "true"} class="h-5 w-5 rounded border-[var(--jh-border)] text-[var(--jh-primary)]" />
+                            Remote only
+                        </label>
+
+                        <input type="hidden" name="sort" value={sort} />
+                        <input type="hidden" name="view" value={view} />
+
+                        <button type="submit" class="jh-button w-full justify-center">Apply Filters</button>
+                        <a href="/jobs" class="block text-center text-base font-semibold text-[var(--jh-primary)]">Clear filters</a>
+                    </div>
+                </form>
+            </aside>
+
+            <div>
+                <div class="mb-8 flex flex-col gap-4 lg:flex-row lg:items-end lg:justify-between">
+                    <div>
+                        <h2 class="text-6xl font-extrabold tracking-[-0.07em] text-slate-900">All Jobs</h2>
+                        <p class="mt-2 text-xl text-slate-500">Showing {jobsData.pagination.totalItems} results</p>
+                    </div>
+                    <div class="flex flex-wrap items-center gap-3">
+                        <form action="/jobs" method="GET" class="flex items-center gap-3">
+                            <input type="hidden" name="q" value={query} />
+                            <input type="hidden" name="experience" value={experience} />
+                            <input type="hidden" name="source" value={source} />
+                            <input type="hidden" name="employment_type" value={employmentType} />
+                            <input type="hidden" name="remote" value={remote} />
+                            <input type="hidden" name="view" value={view} />
+                            <label class="text-lg text-slate-500">Sort by:</label>
+                            <select name="sort" class="rounded-[1rem] border border-[var(--jh-border)] bg-white px-4 py-3 text-base font-semibold text-slate-900" onchange="this.form.submit()">
+                                <option value="relevance" selected={sort === "relevance"}>Most relevant</option>
+                                <option value="date" selected={sort === "date"}>Newest</option>
+                                <option value="salary" selected={sort === "salary"}>Top salary</option>
+                            </select>
+                        </form>
+                        <a href={`/jobs?${new URLSearchParams({ ...Object.fromEntries(url.searchParams), view: "grid" }).toString()}`} class:list={["rounded-[1rem] border px-4 py-3 text-lg font-semibold", view === "grid" ? "border-[var(--jh-primary)] bg-[var(--jh-soft)] text-[var(--jh-primary)]" : "border-[var(--jh-border)] bg-white text-slate-500"]}>Grid</a>
+                        <a href={`/jobs?${new URLSearchParams({ ...Object.fromEntries(url.searchParams), view: "list" }).toString()}`} class:list={["rounded-[1rem] border px-4 py-3 text-lg font-semibold", view === "list" ? "border-[var(--jh-primary)] bg-[var(--jh-soft)] text-[var(--jh-primary)]" : "border-[var(--jh-border)] bg-white text-slate-500"]}>List</a>
+                    </div>
+                </div>
+
+                {error ? (
+                    <div class="rounded-[1.5rem] border border-[rgba(255,108,95,0.28)] bg-[rgba(255,108,95,0.08)] p-6 text-lg font-medium text-[var(--jh-coral)]">
+                        {error}
+                    </div>
+                ) : jobsData.data.length > 0 ? (
+                    <>
+                        <div class:list={[view === "grid" ? "grid gap-6 md:grid-cols-2 xl:grid-cols-3" : "space-y-5"]}>
+                            {jobsData.data.map((job) => <JobCard job={job} mode={view} />)}
+                        </div>
+                        <div class="mt-12">
+                            <Pagination currentPage={jobsData.pagination.page} totalPages={jobsData.pagination.totalPages} baseUrl={url.pathname + url.search} />
+                        </div>
+                    </>
+                ) : (
+                    <div class="jh-card p-12 text-center">
+                        <h3 class="text-3xl font-extrabold tracking-[-0.05em] text-slate-900">No jobs found</h3>
+                        <p class="mt-3 text-lg text-slate-500">Try adjusting your search or filters.</p>
+                    </div>
                 )}
-              </p>
             </div>
-            
-            <!-- Job List -->
-            {jobsData.data.length > 0 ? (
-              <div class="space-y-4 mb-8">
-                {jobsData.data.map((job) => (
-                  <JobCard job={job} />
-                ))}
-              </div>
-            ) : (
-              <div class="bg-slate-50 dark:bg-slate-800 rounded-xl p-12 text-center">
-                <svg class="w-16 h-16 mx-auto text-slate-300 dark:text-slate-600 mb-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                  <path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.5" d="M9.172 16.172a4 4 0 015.656 0M9 10h.01M15 10h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
-                </svg>
-                <h3 class="text-lg font-medium text-slate-900 dark:text-white mb-2">No jobs found</h3>
-                <p class="text-slate-600 dark:text-slate-400">Try adjusting your search or filters</p>
-              </div>
-            )}
-            
-            <!-- Pagination -->
-            <Pagination 
-              currentPage={jobsData.pagination.page} 
-              totalPages={jobsData.pagination.totalPages}
-              baseUrl={url.pathname + url.search}
-            />
-          </>
-        )}
-      </main>
-    </div>
-  </div>
+        </div>
+    </section>
 </PageLayout>

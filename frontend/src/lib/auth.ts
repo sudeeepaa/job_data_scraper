@@ -1,7 +1,7 @@
 // Client-side auth state management using localStorage
 // JWT-only approach — no server-side sessions
 
-const TOKEN_KEY = 'jobpulse_token';
+const TOKEN_KEY = 'jobhuntly_token';
 
 export function getToken(): string | null {
     if (typeof window === 'undefined') return null;

@@ -9,8 +9,8 @@ import (
 	"strings"
 	"time"
 
-	"github.com/google/uuid"
 	"github.com/samuelshine/job-data-scraper/internal/domain"
+	sourceutil "github.com/samuelshine/job-data-scraper/internal/sources"
 )
 
 const (
@@ -27,7 +27,7 @@ type Client struct {
 // New creates a new JSearch client.
 func New(apiKey string) *Client {
 	return &Client{
-		httpClient: &http.Client{Timeout: 15 * time.Second},
+		httpClient: &http.Client{Timeout: 30 * time.Second},
 		apiKey:     apiKey,
 	}
 }
@@ -41,9 +41,6 @@ func (c *Client) Name() string {
 func (c *Client) Search(ctx context.Context, query, location string, page int) ([]domain.Job, error) {
 	// Build search query
 	q := query
-	if location != "" {
-		q = fmt.Sprintf("%s in %s", query, location)
-	}
 
 	params := url.Values{}
 	params.Set("query", q)
@@ -123,7 +120,7 @@ func normalize(jr jobResult) domain.Job {
 	}
 
 	return domain.Job{
-		ID:              uuid.New().String(),
+		ID:              sourceutil.StableJobID("jsearch", jr.JobID, jr.JobTitle, jr.EmployerName, applyLink),
 		ExternalID:      jr.JobID,
 		Title:           jr.JobTitle,
 		Description:     jr.JobDescription,
@@ -151,7 +148,7 @@ func buildLocation(city, state, country string) string {
 	if state != "" {
 		parts = append(parts, state)
 	}
-	if len(parts) == 0 && country != "" {
+	if country != "" {
 		parts = append(parts, country)
 	}
 	if len(parts) == 0 {

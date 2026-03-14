@@ -14,9 +14,21 @@ import (
 	"github.com/samuelshine/job-data-scraper/internal/domain"
 	"github.com/samuelshine/job-data-scraper/internal/repository"
 	"github.com/samuelshine/job-data-scraper/internal/service"
+	"github.com/samuelshine/job-data-scraper/internal/sources"
 )
 
 const testJWTSecret = "test-secret-key-for-jwt"
+
+type fakeSource struct {
+	name string
+	jobs []domain.Job
+}
+
+func (f fakeSource) Name() string { return f.name }
+
+func (f fakeSource) Search(_ context.Context, _, _ string, _ int) ([]domain.Job, error) {
+	return append([]domain.Job(nil), f.jobs...), nil
+}
 
 // testServer creates a full HTTP test server with seeded data.
 func testServer(t *testing.T) *httptest.Server {
@@ -81,6 +93,35 @@ func testServer(t *testing.T) *httptest.Server {
 	jobRepo.UpsertCompany(ctx, &domain.Company{
 		Slug: "techco", Name: "TechCo", Industry: "Tech",
 		Description: "Test company", Website: "https://techco.com", JobCount: 1,
+	})
+
+	return httptest.NewServer(router)
+}
+
+func testServerWithSources(t *testing.T, srcs []sources.JobSource) *httptest.Server {
+	t.Helper()
+	db, err := database.NewDatabase(":memory:")
+	if err != nil {
+		t.Fatalf("failed to create test database: %v", err)
+	}
+	t.Cleanup(func() { db.Close() })
+
+	jobRepo := repository.NewJobRepo(db)
+	userRepo := repository.NewUserRepo(db)
+	cacheRepo := repository.NewCacheRepo(db)
+	trendsRepo := repository.NewTrendsRepo(db)
+	aggregator := service.NewAggregator(srcs, jobRepo, cacheRepo, time.Hour)
+
+	jobSvc := service.NewJobService(jobRepo, userRepo, cacheRepo, trendsRepo, aggregator)
+	authSvc := service.NewAuthService(userRepo, testJWTSecret)
+
+	router := NewRouter(RouterConfig{
+		JobHandler:       handlers.NewJobHandler(jobSvc),
+		CompanyHandler:   handlers.NewCompanyHandler(jobSvc),
+		AnalyticsHandler: handlers.NewAnalyticsHandler(jobSvc),
+		AuthHandler:      handlers.NewAuthHandler(authSvc, userRepo),
+		JWTSecret:        testJWTSecret,
+		CORSOrigins:      []string{"*"},
 	})
 
 	return httptest.NewServer(router)
@@ -171,6 +212,52 @@ func TestAPI_ListJobs_WithFilters(t *testing.T) {
 	data := result["data"].([]interface{})
 	if len(data) != 1 {
 		t.Errorf("filtered data len = %d, want 1", len(data))
+	}
+}
+
+func TestAPI_ListJobs_RefreshesFromSourcesOnSearch(t *testing.T) {
+	intPtr := func(v int) *int { return &v }
+	now := time.Now()
+	ts := testServerWithSources(t, []sources.JobSource{
+		fakeSource{
+			name: "bridge",
+			jobs: []domain.Job{
+				{
+					ID: "live-1", Title: "ML Engineer", Description: "Models and inference",
+					Company: "AI India", CompanySlug: "ai-india", Location: "Bengaluru, India",
+					SalaryMin: intPtr(120000), SalaryMax: intPtr(180000), SalaryCurrency: "USD",
+					PostedAt: now, Source: "linkedin", SourceURL: "https://example.com/jobs/live-1",
+					Skills: domain.StringSlice{"Python", "PyTorch"}, IsRemote: true,
+					EmploymentType: "full-time", ExperienceLevel: "mid",
+				},
+			},
+		},
+	})
+	defer ts.Close()
+
+	resp, err := http.Get(ts.URL + "/api/v1/jobs/?q=ML+Engineer&location=India")
+	if err != nil {
+		t.Fatalf("list jobs failed: %v", err)
+	}
+	defer resp.Body.Close()
+
+	if resp.StatusCode != http.StatusOK {
+		t.Fatalf("status = %d, want %d", resp.StatusCode, http.StatusOK)
+	}
+
+	var result map[string]interface{}
+	if err := json.NewDecoder(resp.Body).Decode(&result); err != nil {
+		t.Fatalf("Decode failed: %v", err)
+	}
+
+	data := result["data"].([]interface{})
+	if len(data) != 1 {
+		t.Fatalf("data len = %d, want 1", len(data))
+	}
+
+	first := data[0].(map[string]interface{})
+	if first["title"] != "ML Engineer" {
+		t.Fatalf("title = %v, want ML Engineer", first["title"])
 	}
 }
 

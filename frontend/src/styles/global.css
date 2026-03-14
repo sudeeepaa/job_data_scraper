@@ -1,134 +1,174 @@
 @import "tailwindcss";
 
-/* Enable selector-based dark mode */
-@variant dark (&:where(.dark, .dark *));
-
-/* Register custom colors as Tailwind utilities */
 @theme {
-  --color-primary-50: #eff6ff;
-  --color-primary-100: #dbeafe;
-  --color-primary-200: #bfdbfe;
-  --color-primary-300: #93c5fd;
-  --color-primary-400: #60a5fa;
-  --color-primary-500: #3b82f6;
-  --color-primary-600: #2563eb;
-  --color-primary-700: #1d4ed8;
-  --color-primary-800: #1e40af;
-  --color-primary-900: #1e3a8a;
-
-  --color-surface-dark: #0f172a;
-  --color-surface-card-dark: #1e293b;
+  --color-primary-500: #635bff;
+  --color-primary-600: #4f46e5;
 }
 
-/* Dark mode color scheme */
-.dark {
-  color-scheme: dark;
+:root {
+  --jh-bg: #f9fbff;
+  --jh-surface: #ffffff;
+  --jh-soft: #eef0ff;
+  --jh-border: #d9dff0;
+  --jh-border-strong: #c8d0e8;
+  --jh-primary: #635bff;
+  --jh-primary-strong: #4f46e5;
+  --jh-primary-soft: rgba(99, 91, 255, 0.12);
+  --jh-accent: #3fa7ff;
+  --jh-mint: #58d6be;
+  --jh-gold: #ffb648;
+  --jh-coral: #ff6c5f;
+  --jh-ink: #202436;
+  --jh-copy: #5f6785;
 }
 
-/* Base styles */
 html {
   scroll-behavior: smooth;
 }
 
 body {
-  font-family: 'Inter', system-ui, sans-serif;
+  font-family: "Plus Jakarta Sans", system-ui, sans-serif;
+  color: var(--jh-ink);
+  background:
+    radial-gradient(circle at top left, rgba(99, 91, 255, 0.12), transparent 30%),
+    linear-gradient(180deg, #fafbff 0%, #f8fbff 100%);
 }
 
-/* Card hover effects */
-.card-hover {
-  transition: all 0.2s ease;
+a,
+button {
+  transition:
+    color 180ms ease,
+    background-color 180ms ease,
+    border-color 180ms ease,
+    box-shadow 180ms ease,
+    transform 180ms ease;
 }
 
-.card-hover:hover {
-  box-shadow: 0 10px 15px -3px rgb(0 0 0 / 0.1);
-  transform: translateY(-2px);
-}
-
-/* Skill badge styles */
-.skill-badge {
-  padding: 0.25rem 0.625rem;
-  font-size: 0.75rem;
-  font-weight: 500;
-  border-radius: 9999px;
-  background-color: #dbeafe;
-  color: #1d4ed8;
-}
-
-.dark .skill-badge {
-  background-color: rgba(29, 78, 216, 0.2);
-  color: #93c5fd;
-}
-
-/* Source badges */
-.source-linkedin {
-  background-color: #dbeafe;
-  color: #1d4ed8;
-}
-
-.dark .source-linkedin {
-  background-color: rgba(29, 78, 216, 0.2);
-  color: #93c5fd;
-}
-
-.source-indeed {
-  background-color: #f3e8ff;
-  color: #7c3aed;
-}
-
-.dark .source-indeed {
-  background-color: rgba(124, 58, 237, 0.2);
-  color: #c4b5fd;
-}
-
-.source-adzuna {
-  background-color: #ffedd5;
-  color: #c2410c;
-}
-
-.dark .source-adzuna {
-  background-color: rgba(194, 65, 12, 0.2);
-  color: #fdba74;
-}
-
-/* Loading skeleton animation */
-.skeleton {
-  background: linear-gradient(90deg, #e2e8f0 25%, #f1f5f9 50%, #e2e8f0 75%);
-  background-size: 200% 100%;
-  animation: shimmer 1.5s infinite;
-  border-radius: 0.5rem;
-}
-
-.dark .skeleton {
-  background: linear-gradient(90deg, #334155 25%, #475569 50%, #334155 75%);
-  background-size: 200% 100%;
-}
-
-@keyframes shimmer {
-  0% {
-    background-position: 200% 0;
-  }
-
-  100% {
-    background-position: -200% 0;
-  }
-}
-
-/* Focus ring for accessibility */
 *:focus-visible {
-  outline: 2px solid #3b82f6;
+  outline: 3px solid rgba(99, 91, 255, 0.24);
   outline-offset: 2px;
-  border-radius: 0.25rem;
+  border-radius: 1rem;
 }
 
-/* Dark mode card hover glow */
-.dark .card-hover:hover {
-  box-shadow: 0 10px 15px -3px rgb(0 0 0 / 0.3), 0 0 0 1px rgba(59, 130, 246, 0.1);
+.jh-panel {
+  border: 1px solid var(--jh-border);
+  background: rgba(255, 255, 255, 0.88);
+  backdrop-filter: blur(18px);
+  border-radius: 1.75rem;
+  box-shadow: 0 28px 80px rgba(66, 73, 118, 0.08);
 }
 
-/* Spinner animation */
+.jh-card {
+  border: 1px solid var(--jh-border);
+  background: var(--jh-surface);
+  border-radius: 1.75rem;
+  box-shadow: 0 20px 60px rgba(37, 47, 94, 0.05);
+}
+
+.jh-card-hover:hover {
+  transform: translateY(-4px);
+  box-shadow: 0 32px 80px rgba(37, 47, 94, 0.11);
+}
+
+.jh-button,
+.jh-button-secondary {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.75rem;
+  border-radius: 1.25rem;
+  padding: 1rem 1.5rem;
+  font-size: 1.05rem;
+  font-weight: 700;
+  letter-spacing: -0.03em;
+}
+
+.jh-button {
+  background: linear-gradient(135deg, var(--jh-primary) 0%, var(--jh-primary-strong) 100%);
+  color: white;
+  box-shadow: 0 18px 40px rgba(79, 70, 229, 0.24);
+}
+
+.jh-button:hover {
+  transform: translateY(-1px);
+  box-shadow: 0 20px 44px rgba(79, 70, 229, 0.28);
+}
+
+.jh-button-secondary {
+  border: 1px solid var(--jh-border-strong);
+  background: white;
+  color: var(--jh-primary-strong);
+}
+
+.jh-tag {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  border-radius: 999px;
+  border: 1px solid currentColor;
+  padding: 0.5rem 0.9rem;
+  font-size: 0.9rem;
+  font-weight: 600;
+  letter-spacing: -0.03em;
+  background: white;
+}
+
+.jh-tag-marketing {
+  color: var(--jh-gold);
+  background: rgba(255, 182, 72, 0.12);
+}
+
+.jh-tag-design,
+.jh-tag-source {
+  color: var(--jh-primary);
+  background: rgba(99, 91, 255, 0.08);
+}
+
+.jh-tag-business,
+.jh-tag-remote {
+  color: var(--jh-mint);
+  background: rgba(88, 214, 190, 0.12);
+}
+
+.jh-tag-danger {
+  color: var(--jh-coral);
+  background: rgba(255, 108, 95, 0.08);
+}
+
+.jh-metric-card {
+  border: 1px solid var(--jh-border);
+  border-radius: 1.75rem;
+  background: white;
+  padding: 1.75rem;
+  box-shadow: 0 20px 55px rgba(37, 47, 94, 0.06);
+}
+
+.jh-grid-lines {
+  background-image:
+    linear-gradient(rgba(99, 91, 255, 0.07) 1px, transparent 1px),
+    linear-gradient(90deg, rgba(99, 91, 255, 0.07) 1px, transparent 1px);
+  background-size: 40px 40px;
+}
+
+.jh-soft-divider {
+  height: 1px;
+  background: linear-gradient(90deg, transparent 0%, rgba(201, 207, 227, 0.95) 25%, rgba(201, 207, 227, 0.95) 75%, transparent 100%);
+}
+
+.animate-spin {
+  animation: spin 1s linear infinite;
+}
+
 @keyframes spin {
   to {
     transform: rotate(360deg);
+  }
+}
+
+@media (max-width: 640px) {
+  .jh-button,
+  .jh-button-secondary {
+    width: 100%;
+    justify-content: center;
   }
 }
 

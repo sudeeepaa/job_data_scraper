@@ -1,0 +1,81 @@
+---
+import BaseLayout from "./BaseLayout.astro";
+import BrandMark from "../components/common/BrandMark.astro";
+
+interface Props {
+    title: string;
+    description?: string;
+    headline: string;
+    subheadline: string;
+    ctaLabel: string;
+}
+
+const { title, description, headline, subheadline, ctaLabel } = Astro.props;
+---
+
+<BaseLayout title={title} description={description}>
+    <main class="grid min-h-screen lg:grid-cols-[minmax(0,1.05fr)_minmax(520px,0.95fr)]">
+        <section class="relative hidden overflow-hidden bg-[linear-gradient(180deg,#f2f4ff_0%,#eef0fb_100%)] lg:flex">
+            <div class="absolute inset-0">
+                <div class="absolute left-[-8rem] top-[-6rem] h-72 w-72 rounded-full bg-[rgba(78,93,255,0.08)] blur-3xl"></div>
+                <div class="absolute bottom-[-6rem] right-[-4rem] h-72 w-72 rounded-full bg-[rgba(93,196,179,0.12)] blur-3xl"></div>
+            </div>
+            <div class="relative flex w-full flex-col px-14 py-12">
+                <BrandMark />
+                <div class="mt-12 max-w-[30rem]">
+                    <div class="jh-panel mb-8 inline-flex w-fit flex-col gap-2 px-6 py-5">
+                        <div class="flex gap-2">
+                            <span class="h-5 w-2 rounded-full bg-[rgba(124,92,255,0.18)]"></span>
+                            <span class="h-7 w-2 rounded-full bg-[var(--jh-primary)]"></span>
+                            <span class="h-4 w-2 rounded-full bg-[rgba(124,92,255,0.18)]"></span>
+                            <span class="h-6 w-2 rounded-full bg-[var(--jh-primary)]"></span>
+                        </div>
+                        <div class="text-4xl font-extrabold tracking-[-0.05em] text-slate-900">100K+</div>
+                        <div class="text-lg text-slate-500">People got hired</div>
+                    </div>
+                    <div class="relative rounded-[2.4rem] bg-[linear-gradient(160deg,#ffffff_0%,#eef2ff_100%)] p-10 shadow-[0_40px_120px_rgba(32,44,120,0.12)]">
+                        <div class="mx-auto aspect-[4/5] max-w-[22rem] rounded-[2rem] bg-[linear-gradient(155deg,#dfe5ff_0%,#f7f8ff_44%,#ebeef9_100%)]"></div>
+                        <div class="absolute bottom-8 left-8 max-w-[19rem] rounded-[2rem] bg-white/94 p-6 shadow-[0_24px_60px_rgba(34,40,75,0.12)]">
+                            <div class="mb-3 flex items-center gap-4">
+                                <div class="flex h-16 w-16 items-center justify-center rounded-full bg-[linear-gradient(135deg,#4f46e5_0%,#7c5cff_100%)] text-xl font-bold text-white">A</div>
+                                <div>
+                                    <div class="text-2xl font-bold tracking-[-0.04em] text-slate-900">Adam Sandler</div>
+                                    <div class="text-base text-slate-500">Lead Engineer at Canva</div>
+                                </div>
+                            </div>
+                            <p class="text-xl font-semibold leading-10 tracking-[-0.03em] text-slate-900">
+                                “Great platform for the job seeker that searching for new career heights.”
+                            </p>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </section>
+
+        <section class="flex items-center justify-center px-6 py-12 sm:px-10">
+            <div class="w-full max-w-[28rem]">
+                <div class="mb-10 flex justify-center lg:hidden">
+                    <BrandMark />
+                </div>
+                <div class="mb-10">
+                    <div class="mb-6 inline-flex rounded-2xl bg-[var(--jh-soft)] p-1 text-sm font-semibold">
+                        <span class="rounded-[1rem] bg-white px-5 py-3 text-[var(--jh-primary)] shadow-sm">Job Seeker</span>
+                        <span class="px-5 py-3 text-slate-600">Company</span>
+                    </div>
+                    <h1 class="mb-4 text-6xl font-extrabold tracking-[-0.07em] text-slate-900">{headline}</h1>
+                    <p class="text-xl leading-9 text-slate-500">{subheadline}</p>
+                </div>
+
+                <div class="mb-8">
+                    <button class="jh-button-secondary w-full justify-center text-xl">{ctaLabel}</button>
+                    <div class="my-8 flex items-center gap-4 text-lg text-slate-400">
+                        <span class="h-px flex-1 bg-slate-200"></span>
+                        <span>Or continue with email</span>
+                        <span class="h-px flex-1 bg-slate-200"></span>
+                    </div>
+                </div>
+                <slot />
+            </div>
+        </section>
+    </main>
+</BaseLayout>

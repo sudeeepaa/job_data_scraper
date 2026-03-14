@@ -1,70 +1,55 @@
 ---
+import BrandMark from "./BrandMark.astro";
+
 const currentYear = new Date().getFullYear();
 ---
 
-<footer
-    class="bg-slate-50 dark:bg-slate-900 border-t border-slate-200 dark:border-slate-700"
->
-    <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
-        <div class="grid grid-cols-1 md:grid-cols-3 gap-8">
-            <!-- About -->
+<footer class="bg-[var(--jh-ink)] text-white">
+    <div class="mx-auto max-w-[1180px] px-6 py-20">
+        <div class="grid gap-14 lg:grid-cols-[1.2fr_0.55fr_0.55fr_1fr]">
             <div>
-                <h3 class="font-semibold text-slate-900 dark:text-white mb-3">
-                    JobPulse
-                </h3>
-                <p class="text-sm text-slate-600 dark:text-slate-400">
-                    Aggregating job listings from LinkedIn and Indeed to help
-                    you find your next opportunity.
+                <BrandMark light />
+                <p class="mt-8 max-w-[22rem] text-lg leading-9 text-slate-300">
+                    Great platform for the job seeker that passionate about startups. Find your dream job easier.
                 </p>
             </div>
-
-            <!-- Quick Links -->
             <div>
-                <h3 class="font-semibold text-slate-900 dark:text-white mb-3">
-                    Quick Links
-                </h3>
-                <ul class="space-y-2 text-sm">
-                    <li>
-                        <a
-                            href="/jobs"
-                            class="text-slate-600 hover:text-primary-600 dark:text-slate-400 dark:hover:text-primary-400"
-                            >Browse Jobs</a>
-                    </li>
-                    <li>
-                        <a
-                            href="/companies"
-                            class="text-slate-600 hover:text-primary-600 dark:text-slate-400 dark:hover:text-primary-400"
-                            >Companies</a>
-                    </li>
-                    <li>
-                        <a
-                            href="/analytics"
-                            class="text-slate-600 hover:text-primary-600 dark:text-slate-400 dark:hover:text-primary-400"
-                            >Analytics</a>
-                    </li>
+                <h3 class="text-[1.65rem] font-bold tracking-[-0.04em]">About</h3>
+                <ul class="mt-6 space-y-4 text-lg text-slate-300">
+                    <li><a href="/companies" class="hover:text-white">Companies</a></li>
+                    <li><a href="/jobs" class="hover:text-white">Pricing</a></li>
+                    <li><a href="/jobs" class="hover:text-white">Terms</a></li>
+                    <li><a href="/analytics" class="hover:text-white">Advice</a></li>
+                    <li><a href="/auth/register" class="hover:text-white">Privacy Policy</a></li>
                 </ul>
             </div>
-
-            <!-- Sources -->
             <div>
-                <h3 class="font-semibold text-slate-900 dark:text-white mb-3">
-                    Data Sources
-                </h3>
-                <div class="flex gap-3">
-                    <span class="px-3 py-1 text-sm rounded-full source-linkedin"
-                        >LinkedIn</span
-                    >
-                    <span class="px-3 py-1 text-sm rounded-full source-indeed"
-                        >Indeed</span
-                    >
-                </div>
+                <h3 class="text-[1.65rem] font-bold tracking-[-0.04em]">Resources</h3>
+                <ul class="mt-6 space-y-4 text-lg text-slate-300">
+                    <li><a href="/analytics" class="hover:text-white">Help Docs</a></li>
+                    <li><a href="/jobs" class="hover:text-white">Guide</a></li>
+                    <li><a href="/analytics" class="hover:text-white">Updates</a></li>
+                    <li><a href="/companies" class="hover:text-white">Contact Us</a></li>
+                </ul>
+            </div>
+            <div>
+                <h3 class="text-[1.65rem] font-bold tracking-[-0.04em]">Get job notifications</h3>
+                <p class="mt-6 text-lg leading-9 text-slate-300">
+                    The latest job news, articles, sent to your inbox weekly.
+                </p>
+                <form class="mt-8 flex overflow-hidden rounded-[1.35rem] bg-white">
+                    <input
+                        type="email"
+                        placeholder="Email Address"
+                        class="min-w-0 flex-1 bg-transparent px-5 py-4 text-lg text-slate-900 outline-none"
+                    />
+                    <button type="submit" class="bg-[var(--jh-primary)] px-6 py-4 text-lg font-semibold text-white">Subscribe</button>
+                </form>
             </div>
         </div>
 
-        <div
-            class="mt-8 pt-6 border-t border-slate-200 dark:border-slate-700 text-center text-sm text-slate-500"
-        >
-            <p>&copy; {currentYear} JobPulse. Built with Astro + Go.</p>
+        <div class="mt-16 border-t border-white/10 pt-10 text-base text-slate-400">
+            <p>2021 @ JobHuntly. All rights reserved. Updated {currentYear}.</p>
         </div>
     </div>
 </footer>

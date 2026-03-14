@@ -1,280 +1,435 @@
 ---
+import background from "../assets/background.svg";
 import PageLayout from "../layouts/PageLayout.astro";
-import SearchBar from "../components/islands/SearchBar";
-import { fetchJobs, fetchAnalyticsSummary } from "../lib/api";
-import type { JobSummary, AnalyticsSummary } from "../types";
+import JobCard from "../components/jobs/JobCard.astro";
+import { fetchAnalyticsSummary, fetchCompanies, fetchJobs } from "../lib/api";
 
-export const prerender = true; // SSG for home page
+const fallbackJobs = [
+    {
+        id: "fallback-1",
+        title: "Email Marketing",
+        company: "Revolut",
+        companySlug: "revolut",
+        location: "Madrid, Spain",
+        salaryMin: 60000,
+        salaryMax: 90000,
+        salaryCurrency: "USD",
+        postedAt: new Date().toISOString(),
+        source: "seed",
+        sourceUrl: "#",
+        skills: ["Marketing", "Design"],
+        isRemote: false,
+        experienceLevel: "mid",
+        isSaved: false,
+    },
+    {
+        id: "fallback-2",
+        title: "Brand Designer",
+        company: "Dropbox",
+        companySlug: "dropbox",
+        location: "San Francisco, USA",
+        salaryMin: 90000,
+        salaryMax: 120000,
+        salaryCurrency: "USD",
+        postedAt: new Date().toISOString(),
+        source: "seed",
+        sourceUrl: "#",
+        skills: ["Design", "Business"],
+        isRemote: true,
+        experienceLevel: "mid",
+        isSaved: false,
+    },
+    {
+        id: "fallback-3",
+        title: "Visual Designer",
+        company: "Blinkist",
+        companySlug: "blinkist",
+        location: "Granada, Spain",
+        salaryMin: 75000,
+        salaryMax: 98000,
+        salaryCurrency: "USD",
+        postedAt: new Date().toISOString(),
+        source: "seed",
+        sourceUrl: "#",
+        skills: ["Design", "Marketing"],
+        isRemote: true,
+        experienceLevel: "senior",
+        isSaved: false,
+    },
+    {
+        id: "fallback-4",
+        title: "Product Designer",
+        company: "ClassPass",
+        companySlug: "classpass",
+        location: "Manchester, UK",
+        salaryMin: 85000,
+        salaryMax: 110000,
+        salaryCurrency: "USD",
+        postedAt: new Date().toISOString(),
+        source: "seed",
+        sourceUrl: "#",
+        skills: ["Design", "Business"],
+        isRemote: false,
+        experienceLevel: "mid",
+        isSaved: false,
+    },
+    {
+        id: "fallback-5",
+        title: "Data Analyst",
+        company: "Twitter",
+        companySlug: "twitter",
+        location: "San Diego, US",
+        salaryMin: 70000,
+        salaryMax: 98000,
+        salaryCurrency: "USD",
+        postedAt: new Date().toISOString(),
+        source: "seed",
+        sourceUrl: "#",
+        skills: ["Technology", "Business"],
+        isRemote: true,
+        experienceLevel: "mid",
+        isSaved: false,
+    },
+    {
+        id: "fallback-6",
+        title: "HR Manager",
+        company: "Packer",
+        companySlug: "packer",
+        location: "Lucern, Switzerland",
+        salaryMin: 72000,
+        salaryMax: 97000,
+        salaryCurrency: "USD",
+        postedAt: new Date().toISOString(),
+        source: "seed",
+        sourceUrl: "#",
+        skills: ["Human Resource", "Business"],
+        isRemote: false,
+        experienceLevel: "senior",
+        isSaved: false,
+    },
+    {
+        id: "fallback-7",
+        title: "Interactive Developer",
+        company: "Terraform",
+        companySlug: "terraform",
+        location: "Hamburg, Germany",
+        salaryMin: 95000,
+        salaryMax: 135000,
+        salaryCurrency: "USD",
+        postedAt: new Date().toISOString(),
+        source: "seed",
+        sourceUrl: "#",
+        skills: ["Technology", "Engineering"],
+        isRemote: true,
+        experienceLevel: "lead",
+        isSaved: false,
+    },
+    {
+        id: "fallback-8",
+        title: "Lead Designer",
+        company: "Canva",
+        companySlug: "canva",
+        location: "Ontario, Canada",
+        salaryMin: 100000,
+        salaryMax: 145000,
+        salaryCurrency: "USD",
+        postedAt: new Date().toISOString(),
+        source: "seed",
+        sourceUrl: "#",
+        skills: ["Design", "Technology"],
+        isRemote: true,
+        experienceLevel: "lead",
+        isSaved: false,
+    },
+];
 
-// For static generation, we'll use placeholder data
-// In production, this would be fetched at build time
-const featuredJobs: JobSummary[] = [];
-const stats: AnalyticsSummary = {
-	totalJobs: 10,
-	totalCompanies: 9,
-	jobsToday: 3,
-	jobsThisWeek: 10,
-	averageSalary: 152000,
-	remoteJobsCount: 6,
-};
+const fallbackCompanies = [
+    { slug: "vodafone", name: "Vodafone" },
+    { slug: "intel", name: "Intel" },
+    { slug: "tesla", name: "Tesla" },
+    { slug: "amd", name: "AMD" },
+    { slug: "talkit", name: "Talkit" },
+];
+
+const categoryDefaults = [
+    { title: "Design", count: 235, accent: false },
+    { title: "Sales", count: 756, accent: false },
+    { title: "Marketing", count: 140, accent: true },
+    { title: "Finance", count: 325, accent: false },
+    { title: "Technology", count: 436, accent: false },
+    { title: "Engineering", count: 542, accent: false },
+    { title: "Business", count: 211, accent: false },
+    { title: "Human Resource", count: 346, accent: false },
+];
+
+let featuredJobs = fallbackJobs;
+let latestJobs = fallbackJobs.slice(0, 6);
+let companies = fallbackCompanies;
+let summary = null;
+
+try {
+    const [jobsResponse, companiesResponse, summaryResponse] = await Promise.all([
+        fetchJobs({ limit: 8 }),
+        fetchCompanies(),
+        fetchAnalyticsSummary(),
+    ]);
+
+    if (jobsResponse.data.length > 0) {
+        featuredJobs = jobsResponse.data.slice(0, 8);
+        latestJobs = jobsResponse.data.slice(0, 6);
+    }
+    if (companiesResponse.data.length > 0) {
+        companies = companiesResponse.data.slice(0, 5);
+    }
+    summary = summaryResponse;
+} catch {
+    // Keep a polished fallback landing page even when the API is unavailable.
+}
+
+const categoryCounts = new Map<string, number>();
+featuredJobs.forEach((job) => {
+    for (const skill of job.skills.slice(0, 2)) {
+        const label = skill || "General";
+        categoryCounts.set(label, (categoryCounts.get(label) || 0) + 1);
+    }
+});
+
+const categoryCards = categoryDefaults.map((category) => ({
+    ...category,
+    count: categoryCounts.get(category.title) || category.count,
+}));
+
+const partnerLogos = companies.map((company) => company.name);
+const heroJobs = featuredJobs.slice(0, 4);
 ---
 
 <PageLayout
-	title="Find Your Next Opportunity"
-	description="Discover job opportunities from LinkedIn and Indeed. Search, filter, and analyze job listings with JobPulse."
+    title="Discover Jobs"
+    description="JobHuntly helps people discover great jobs, explore standout companies, and move through their next career step with confidence."
 >
-	<!-- Hero Section -->
-	<section
-		class="relative overflow-hidden bg-gradient-to-b from-primary-50 to-white dark:from-slate-900 dark:to-surface-dark py-20 lg:py-28"
-	>
-		<div class="absolute inset-0 bg-grid-pattern opacity-5"></div>
-		<div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 relative">
-			<div class="text-center max-w-3xl mx-auto">
-				<h1
-					class="text-4xl sm:text-5xl lg:text-6xl font-bold text-slate-900 dark:text-white mb-6"
-				>
-					Find Your Next
-					<span class="text-primary-600 dark:text-primary-400">
-						Dream Job</span
-					>
-				</h1>
-				<p
-					class="text-lg sm:text-xl text-slate-600 dark:text-slate-300 mb-8"
-				>
-					Aggregating thousands of opportunities from LinkedIn and
-					Indeed. Search, filter, and discover your perfect role.
-				</p>
+    <section class="relative overflow-hidden border-b border-slate-200/80 bg-[linear-gradient(180deg,#f5f7ff_0%,#fbfcff_55%,#ffffff_100%)]">
+        <div class="pointer-events-none absolute inset-0">
+            <div class="absolute -left-28 top-16 h-72 w-72 rounded-full bg-[rgba(99,91,255,0.12)] blur-3xl"></div>
+            <div class="absolute right-[-4rem] top-[-2rem] h-[28rem] w-[28rem] rounded-full bg-[rgba(63,167,255,0.12)] blur-3xl"></div>
+            <div class="absolute bottom-0 right-0 h-56 w-56 border-l border-t border-[rgba(99,91,255,0.12)]"></div>
+        </div>
 
-				<div class="flex justify-center mb-8">
-					<SearchBar client:load />
-				</div>
+        <div class="relative mx-auto max-w-[1180px] px-6 py-18 sm:py-24">
+            <div class="grid gap-14 lg:grid-cols-[1.08fr_0.92fr] lg:items-start">
+                <div>
+                    <h1 class="max-w-[9ch] text-[3.9rem] font-extrabold leading-[0.98] tracking-[-0.085em] text-slate-900 sm:text-[5.6rem]">
+                        Discover more than
+                        <span class="mt-2 block text-[var(--jh-accent)]">5000+ Jobs</span>
+                    </h1>
+                    <div class="mt-3 h-3 w-60 rounded-full bg-[linear-gradient(90deg,#2b8fff_0%,#49abff_45%,#2b8fff_100%)] sm:w-72"></div>
+                    <p class="mt-8 max-w-[33rem] text-lg leading-8 text-slate-500 sm:text-xl sm:leading-10">
+                        Great platform for the job seeker that searching for career heights and passionate about startups.
+                    </p>
 
-				<div
-					class="flex flex-wrap justify-center gap-4 text-sm text-slate-500 dark:text-slate-400"
-				>
-					<span>Popular searches:</span>
-					<a
-						href="/jobs?q=go+developer"
-						class="text-primary-600 dark:text-primary-400 hover:underline"
-						>Go Developer</a
-					>
-					<a
-						href="/jobs?q=react"
-						class="text-primary-600 dark:text-primary-400 hover:underline"
-						>React</a
-					>
-					<a
-						href="/jobs?q=remote"
-						class="text-primary-600 dark:text-primary-400 hover:underline"
-						>Remote</a
-					>
-					<a
-						href="/jobs?q=machine+learning"
-						class="text-primary-600 dark:text-primary-400 hover:underline"
-						>Machine Learning</a
-					>
-				</div>
-			</div>
-		</div>
-	</section>
+                    <form action="/jobs" method="GET" class="jh-panel mt-10 grid gap-3 p-3 sm:grid-cols-[1fr_auto] sm:p-4">
+                        <input
+                            type="search"
+                            name="q"
+                            placeholder="Job title or keyword"
+                            class="rounded-[1.15rem] border border-transparent bg-white px-5 py-4 text-base text-slate-900 outline-none sm:text-lg"
+                        />
+                        <button type="submit" class="jh-button justify-center px-7 py-4">Search my job</button>
+                    </form>
 
-	<!-- Stats Section -->
-	<section
-		class="py-12 bg-white dark:bg-surface-dark border-y border-slate-200 dark:border-slate-700"
-	>
-		<div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
-			<div class="grid grid-cols-2 md:grid-cols-4 gap-8">
-				<div class="text-center">
-					<div
-						class="text-3xl sm:text-4xl font-bold text-primary-600 dark:text-primary-400"
-					>
-						{stats.totalJobs}+
-					</div>
-					<div
-						class="text-sm text-slate-600 dark:text-slate-400 mt-1"
-					>
-						Active Jobs
-					</div>
-				</div>
-				<div class="text-center">
-					<div
-						class="text-3xl sm:text-4xl font-bold text-primary-600 dark:text-primary-400"
-					>
-						{stats.totalCompanies}
-					</div>
-					<div
-						class="text-sm text-slate-600 dark:text-slate-400 mt-1"
-					>
-						Companies
-					</div>
-				</div>
-				<div class="text-center">
-					<div
-						class="text-3xl sm:text-4xl font-bold text-primary-600 dark:text-primary-400"
-					>
-						{stats.remoteJobsCount}
-					</div>
-					<div
-						class="text-sm text-slate-600 dark:text-slate-400 mt-1"
-					>
-						Remote Jobs
-					</div>
-				</div>
-				<div class="text-center">
-					<div
-						class="text-3xl sm:text-4xl font-bold text-primary-600 dark:text-primary-400"
-					>
-						${(stats.averageSalary / 1000).toFixed(0)}k
-					</div>
-					<div
-						class="text-sm text-slate-600 dark:text-slate-400 mt-1"
-					>
-						Avg Salary
-					</div>
-				</div>
-			</div>
-		</div>
-	</section>
+                    <p class="mt-4 text-sm text-slate-400 sm:text-base">
+                        Popular : UI Designer, UX Researcher, Android, Admin
+                    </p>
+                </div>
 
-	<!-- Features Section -->
-	<section class="py-16 lg:py-24 bg-slate-50 dark:bg-slate-900">
-		<div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
-			<h2
-				class="text-2xl sm:text-3xl font-bold text-center text-slate-900 dark:text-white mb-12"
-			>
-				Why Use JobPulse?
-			</h2>
+                <div class="relative hidden lg:block">
+                    <div class="jh-card overflow-hidden bg-white">
+                        <div class="border-b border-[var(--jh-border)] px-7 py-6">
+                            <div class="flex items-center justify-between">
+                                <div>
+                                    <div class="text-sm font-semibold uppercase tracking-[0.22em] text-[var(--jh-primary)]">Recruiter Desk</div>
+                                    <div class="mt-3 text-4xl font-extrabold tracking-[-0.06em] text-slate-900">Start posting jobs today</div>
+                                </div>
+                                <a href="/companies" class="jh-button-secondary px-5 py-3">Sign Up For Free</a>
+                            </div>
+                        </div>
 
-			<div class="grid md:grid-cols-3 gap-8">
-				<div
-					class="bg-white dark:bg-slate-800 rounded-xl p-6 border border-slate-200 dark:border-slate-700"
-				>
-					<div
-						class="w-12 h-12 bg-primary-100 dark:bg-primary-900/30 rounded-lg flex items-center justify-center mb-4"
-					>
-						<svg
-							class="w-6 h-6 text-primary-600 dark:text-primary-400"
-							fill="none"
-							stroke="currentColor"
-							viewBox="0 0 24 24"
-						>
-							<path
-								stroke-linecap="round"
-								stroke-linejoin="round"
-								stroke-width="2"
-								d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z"
-							></path>
-						</svg>
-					</div>
-					<h3
-						class="font-semibold text-lg text-slate-900 dark:text-white mb-2"
-					>
-						Unified Search
-					</h3>
-					<p class="text-slate-600 dark:text-slate-400">
-						Search across LinkedIn and Indeed from a single
-						interface. No more switching between platforms.
-					</p>
-				</div>
+                        <div class="grid gap-5 p-7">
+                            <div class="grid gap-4 sm:grid-cols-3">
+                                <div class="jh-metric-card p-5">
+                                    <div class="text-sm text-slate-500">Live jobs</div>
+                                    <div class="mt-3 text-4xl font-extrabold tracking-[-0.05em] text-slate-900">{summary?.totalJobs || 21457}</div>
+                                </div>
+                                <div class="jh-metric-card p-5">
+                                    <div class="text-sm text-slate-500">Applicants</div>
+                                    <div class="mt-3 text-4xl font-extrabold tracking-[-0.05em] text-slate-900">{summary?.totalCompanies || 45}</div>
+                                </div>
+                                <div class="jh-metric-card p-5">
+                                    <div class="text-sm text-slate-500">Top skills</div>
+                                    <div class="mt-3 text-4xl font-extrabold tracking-[-0.05em] text-slate-900">{summary?.topSkills?.length || 8}</div>
+                                </div>
+                            </div>
 
-				<div
-					class="bg-white dark:bg-slate-800 rounded-xl p-6 border border-slate-200 dark:border-slate-700"
-				>
-					<div
-						class="w-12 h-12 bg-green-100 dark:bg-green-900/30 rounded-lg flex items-center justify-center mb-4"
-					>
-						<svg
-							class="w-6 h-6 text-green-600 dark:text-green-400"
-							fill="none"
-							stroke="currentColor"
-							viewBox="0 0 24 24"
-						>
-							<path
-								stroke-linecap="round"
-								stroke-linejoin="round"
-								stroke-width="2"
-								d="M9 19v-6a2 2 0 00-2-2H5a2 2 0 00-2 2v6a2 2 0 002 2h2a2 2 0 002-2zm0 0V9a2 2 0 012-2h2a2 2 0 012 2v10m-6 0a2 2 0 002 2h2a2 2 0 002-2m0 0V5a2 2 0 012-2h2a2 2 0 012 2v14a2 2 0 01-2 2h-2a2 2 0 01-2-2z"
-							></path>
-						</svg>
-					</div>
-					<h3
-						class="font-semibold text-lg text-slate-900 dark:text-white mb-2"
-					>
-						Market Analytics
-					</h3>
-					<p class="text-slate-600 dark:text-slate-400">
-						Track trending skills, salary ranges, and job market
-						insights with our analytics dashboard.
-					</p>
-				</div>
+                            <div class="rounded-[1.6rem] border border-[var(--jh-border)] bg-[linear-gradient(180deg,#f9fbff_0%,#ffffff_100%)] p-5">
+                                <div class="mb-4 flex items-center justify-between">
+                                    <div class="text-2xl font-extrabold tracking-[-0.05em] text-slate-900">Recent Applicants</div>
+                                    <span class="jh-tag jh-tag-design">Live</span>
+                                </div>
+                                <div class="space-y-3">
+                                    {heroJobs.map((job, index) => (
+                                        <div class:list={["grid items-center gap-3 rounded-[1.2rem] px-4 py-4", index === 0 ? "bg-[var(--jh-soft)]" : "bg-white"]} style="grid-template-columns: auto 1fr auto;">
+                                            <div class="flex h-12 w-12 items-center justify-center rounded-[1rem] bg-[linear-gradient(135deg,#dff8f0_0%,#74cfbf_100%)] text-sm font-extrabold text-slate-900">
+                                                {job.company.slice(0, 2).toUpperCase()}
+                                            </div>
+                                            <div class="min-w-0">
+                                                <div class="truncate text-lg font-bold tracking-[-0.03em] text-slate-900">{job.title}</div>
+                                                <div class="truncate text-sm text-slate-500">{job.company} • {job.location}</div>
+                                            </div>
+                                            <span class:list={["jh-tag", index % 2 === 0 ? "jh-tag-marketing" : "jh-tag-business"]}>
+                                                {job.skills[0] || "Design"}
+                                            </span>
+                                        </div>
+                                    ))}
+                                </div>
+                            </div>
+                        </div>
+                    </div>
 
-				<div
-					class="bg-white dark:bg-slate-800 rounded-xl p-6 border border-slate-200 dark:border-slate-700"
-				>
-					<div
-						class="w-12 h-12 bg-purple-100 dark:bg-purple-900/30 rounded-lg flex items-center justify-center mb-4"
-					>
-						<svg
-							class="w-6 h-6 text-purple-600 dark:text-purple-400"
-							fill="none"
-							stroke="currentColor"
-							viewBox="0 0 24 24"
-						>
-							<path
-								stroke-linecap="round"
-								stroke-linejoin="round"
-								stroke-width="2"
-								d="M3 4a1 1 0 011-1h16a1 1 0 011 1v2.586a1 1 0 01-.293.707l-6.414 6.414a1 1 0 00-.293.707V17l-4 4v-6.586a1 1 0 00-.293-.707L3.293 7.293A1 1 0 013 6.586V4z"
-							></path>
-						</svg>
-					</div>
-					<h3
-						class="font-semibold text-lg text-slate-900 dark:text-white mb-2"
-					>
-						Smart Filters
-					</h3>
-					<p class="text-slate-600 dark:text-slate-400">
-						Filter by location, experience level, salary range, and
-						more to find exactly what you're looking for.
-					</p>
-				</div>
-			</div>
-		</div>
-	</section>
+                    <div class="absolute -bottom-8 -left-8 h-32 w-32 rounded-[2rem] border border-[rgba(99,91,255,0.14)] bg-white/70 backdrop-blur"></div>
+                </div>
+            </div>
+        </div>
+    </section>
 
-	<!-- CTA Section -->
-	<section class="py-16 lg:py-24 bg-primary-600 dark:bg-primary-700">
-		<div class="max-w-4xl mx-auto px-4 sm:px-6 lg:px-8 text-center">
-			<h2 class="text-2xl sm:text-3xl font-bold text-white mb-4">
-				Ready to Find Your Next Role?
-			</h2>
-			<p class="text-lg text-primary-100 mb-8">
-				Browse thousands of curated job listings from top companies.
-			</p>
-			<a
-				href="/jobs"
-				class="inline-flex items-center gap-2 px-8 py-4 bg-white text-primary-600 font-semibold rounded-lg hover:bg-primary-50 transition-colors"
-			>
-				Browse All Jobs
-				<svg
-					class="w-5 h-5"
-					fill="none"
-					stroke="currentColor"
-					viewBox="0 0 24 24"
-				>
-					<path
-						stroke-linecap="round"
-						stroke-linejoin="round"
-						stroke-width="2"
-						d="M13 7l5 5m0 0l-5 5m5-5H6"></path>
-				</svg>
-			</a>
-		</div>
-	</section>
+    <section class="mx-auto max-w-[1180px] px-6 py-10 sm:py-14">
+        <p class="mb-6 text-sm uppercase tracking-[0.2em] text-slate-400">Companies we helped grow</p>
+        <div class="grid grid-cols-2 gap-6 text-center text-3xl font-extrabold tracking-[-0.06em] text-slate-300 sm:grid-cols-3 lg:grid-cols-5 lg:text-4xl">
+            {partnerLogos.map((company) => <div>{company}</div>)}
+        </div>
+    </section>
+
+    <section class="mx-auto max-w-[1180px] px-6 py-10 sm:py-14">
+        <div class="mb-8 flex flex-col gap-4 sm:flex-row sm:items-end sm:justify-between">
+            <div>
+                <h2 class="text-4xl font-extrabold tracking-[-0.07em] text-slate-900 sm:text-5xl">
+                    Explore by <span class="text-[var(--jh-accent)]">category</span>
+                </h2>
+                <p class="mt-3 text-lg text-slate-500 sm:text-xl">Browse the spaces where companies are hiring most aggressively.</p>
+            </div>
+            <a href="/jobs" class="text-base font-semibold text-[var(--jh-primary)] sm:text-lg">Show all jobs →</a>
+        </div>
+
+        <div class="grid gap-5 sm:grid-cols-2 xl:grid-cols-4">
+            {categoryCards.map((category) => (
+                <a
+                    href={`/jobs?q=${encodeURIComponent(category.title)}`}
+                    class:list={[
+                        "jh-card jh-card-hover group p-6 sm:p-7",
+                        category.accent ? "bg-[linear-gradient(135deg,#635bff_0%,#4f46e5_100%)] text-white" : "",
+                    ]}
+                >
+                    <div class:list={["flex h-12 w-12 items-center justify-center rounded-[1rem] border text-xl font-bold", category.accent ? "border-white/25 bg-white/10 text-white" : "border-[var(--jh-border)] bg-[var(--jh-soft)] text-[var(--jh-primary)]"]}>
+                        {category.title.slice(0, 1)}
+                    </div>
+                    <h3 class="mt-12 text-3xl font-extrabold tracking-[-0.05em]">{category.title}</h3>
+                    <div class:list={["mt-2 text-lg", category.accent ? "text-white/80" : "text-slate-500"]}>{category.count} jobs available</div>
+                    <div class:list={["mt-8 text-base font-semibold", category.accent ? "text-white" : "text-[var(--jh-primary)]"]}>Explore →</div>
+                </a>
+            ))}
+        </div>
+    </section>
+
+    <section class="mx-auto max-w-[1180px] px-6 py-10 sm:py-14">
+        <div class="overflow-hidden rounded-[2.25rem] bg-[linear-gradient(135deg,#635bff_0%,#4f46e5_100%)] text-white shadow-[0_32px_90px_rgba(79,70,229,0.24)]">
+            <div class="grid gap-8 px-8 py-8 sm:px-10 sm:py-10 lg:grid-cols-[0.92fr_1.08fr] lg:items-center">
+                <div>
+                    <h2 class="max-w-[10ch] text-5xl font-extrabold leading-[1.02] tracking-[-0.07em] sm:text-6xl">Start posting jobs today</h2>
+                    <p class="mt-5 max-w-[26rem] text-lg leading-8 text-white/80 sm:text-xl sm:leading-9">
+                        Turn your company page into a hiring engine with a cleaner applicant pipeline and better visibility.
+                    </p>
+                    <a href="/companies" class="mt-8 inline-flex rounded-[1rem] bg-white px-5 py-3 text-base font-semibold text-[var(--jh-primary)]">Sign Up For Free</a>
+                </div>
+
+                <div class="rounded-[1.9rem] bg-white p-5 text-slate-900 shadow-[0_18px_60px_rgba(31,35,70,0.18)]">
+                    <div class="grid gap-4 lg:grid-cols-[12rem_1fr]">
+                        <div class="rounded-[1.4rem] bg-[var(--jh-soft)] p-4">
+                            <div class="mb-4 h-10 w-10 rounded-[0.9rem] bg-[var(--jh-primary)]"></div>
+                            <div class="space-y-3">
+                                <div class="h-3 rounded-full bg-white"></div>
+                                <div class="h-3 w-5/6 rounded-full bg-white"></div>
+                                <div class="h-3 w-4/6 rounded-full bg-white"></div>
+                            </div>
+                        </div>
+                        <div>
+                            <div class="grid gap-4 sm:grid-cols-3">
+                                <div class="rounded-[1.2rem] border border-[var(--jh-border)] p-4">
+                                    <div class="text-sm text-slate-500">Applicants</div>
+                                    <div class="mt-2 text-3xl font-extrabold tracking-[-0.05em] text-slate-900">{summary?.totalJobs || 76}</div>
+                                </div>
+                                <div class="rounded-[1.2rem] border border-[var(--jh-border)] p-4">
+                                    <div class="text-sm text-slate-500">Messages</div>
+                                    <div class="mt-2 text-3xl font-extrabold tracking-[-0.05em] text-slate-900">{summary?.topSkills?.length || 24}</div>
+                                </div>
+                                <div class="rounded-[1.2rem] border border-[var(--jh-border)] p-4">
+                                    <div class="text-sm text-slate-500">Open jobs</div>
+                                    <div class="mt-2 text-3xl font-extrabold tracking-[-0.05em] text-slate-900">{featuredJobs.length}</div>
+                                </div>
+                            </div>
+                            <div class="mt-4 rounded-[1.4rem] border border-[var(--jh-border)] p-4">
+                                <div class="mb-4 flex items-center justify-between">
+                                    <div class="text-xl font-extrabold tracking-[-0.04em] text-slate-900">Featured dashboard snapshot</div>
+                                    <span class="jh-tag jh-tag-design">Week</span>
+                                </div>
+                                <div class="grid gap-3 sm:grid-cols-2">
+                                    {heroJobs.slice(0, 2).map((job) => (
+                                        <div class="rounded-[1rem] bg-[var(--jh-soft)] px-4 py-4">
+                                            <div class="truncate text-base font-bold text-slate-900">{job.title}</div>
+                                            <div class="mt-1 truncate text-sm text-slate-500">{job.company}</div>
+                                            <div class="mt-4 h-2 rounded-full bg-white">
+                                                <div class="h-full w-3/5 rounded-full bg-[linear-gradient(90deg,#58d6be_0%,#8ae4d1_100%)]"></div>
+                                            </div>
+                                        </div>
+                                    ))}
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </section>
+
+    <section class="mx-auto max-w-[1180px] px-6 py-10 sm:py-14">
+        <div class="mb-8 flex flex-col gap-4 sm:flex-row sm:items-end sm:justify-between">
+            <div>
+                <h2 class="text-4xl font-extrabold tracking-[-0.07em] text-slate-900 sm:text-5xl">
+                    Featured <span class="text-[var(--jh-accent)]">jobs</span>
+                </h2>
+                <p class="mt-3 text-lg text-slate-500 sm:text-xl">Curated roles from the latest data currently stored in the platform.</p>
+            </div>
+            <a href="/jobs" class="text-base font-semibold text-[var(--jh-primary)] sm:text-lg">Show all jobs →</a>
+        </div>
+
+        <div class="grid gap-6 md:grid-cols-2 xl:grid-cols-4">
+            {featuredJobs.slice(0, 8).map((job) => <JobCard job={job} mode="grid" />)}
+        </div>
+    </section>
+
+    <section class="relative mt-6 overflow-hidden border-t border-slate-200/70 bg-[linear-gradient(180deg,#f7f9ff_0%,#ffffff_100%)]">
+        <div class="pointer-events-none absolute inset-0 opacity-20" style={`background-image: url(${background.src}); background-size: 1400px auto; background-position: center top;`}></div>
+        <div class="relative mx-auto max-w-[1180px] px-6 py-14 sm:py-16">
+            <div class="mb-8 flex flex-col gap-4 sm:flex-row sm:items-end sm:justify-between">
+                <div>
+                    <h2 class="text-4xl font-extrabold tracking-[-0.07em] text-slate-900 sm:text-5xl">
+                        Latest <span class="text-[var(--jh-accent)]">jobs open</span>
+                    </h2>
+                    <p class="mt-3 text-lg text-slate-500 sm:text-xl">Fresh roles from your backend, shaped into the JobHuntly content rhythm.</p>
+                </div>
+                <a href="/jobs" class="text-base font-semibold text-[var(--jh-primary)] sm:text-lg">Show all jobs →</a>
+            </div>
+
+            <div class="grid gap-6 lg:grid-cols-2">
+                {latestJobs.map((job) => <JobCard job={job} mode="list" />)}
+            </div>
+        </div>
+    </section>
 </PageLayout>
-
-<style>
-	.bg-grid-pattern {
-		background-image: url("data:image/svg+xml,%3Csvg width='60' height='60' viewBox='0 0 60 60' xmlns='http://www.w3.org/2000/svg'%3E%3Cg fill='none' fill-rule='evenodd'%3E%3Cg fill='%239C92AC' fill-opacity='0.4'%3E%3Cpath d='M36 34v-4h-2v4h-4v2h4v4h2v-4h4v-2h-4zm0-30V0h-2v4h-4v2h4v4h2V6h4V4h-4zM6 34v-4H4v4H0v2h4v4h2v-4h4v-2H6zM6 4V0H4v4H0v2h4v4h2V6h4V4H6z'/%3E%3C/g%3E%3C/g%3E%3C/svg%3E");
-	}
-</style>

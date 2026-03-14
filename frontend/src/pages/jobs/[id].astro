@@ -1,209 +1,164 @@
 ---
-import PageLayout from '../../layouts/PageLayout.astro';
-import SaveJobButton from '../../components/islands/SaveJobButton';
-import { fetchJob } from '../../lib/api';
-import type { Job } from '../../types';
+import PageLayout from "../../layouts/PageLayout.astro";
+import JobCard from "../../components/jobs/JobCard.astro";
+import SaveJobButton from "../../components/islands/SaveJobButton";
+import { fetchCompany, fetchJob } from "../../lib/api";
+import { formatAbsoluteDate, formatSalaryRange, getInitials, sourceLabel } from "../../lib/job-ui";
 
 const { id } = Astro.params;
 
-let job: Job | null = null;
+let job = null;
+let similarJobs = [];
+let company = null;
 let error = null;
 
 try {
-  if (id) {
-    job = await fetchJob(id);
-  }
+    if (id) {
+        job = await fetchJob(id);
+        if (job?.companySlug) {
+            const companyResponse = await fetchCompany(job.companySlug);
+            company = companyResponse.company;
+            similarJobs = companyResponse.jobs.filter((item) => item.id !== job.id).slice(0, 4);
+        }
+    }
 } catch (e) {
-  error = e instanceof Error ? e.message : 'Failed to load job';
+    error = e instanceof Error ? e.message : "Failed to load job";
 }
 
-if (!job && !error) {
-  return Astro.redirect('/404');
-}
-
-const formatDate = (dateStr: string) => {
-  return new Date(dateStr).toLocaleDateString('en-US', { 
-    year: 'numeric', 
-    month: 'long', 
-    day: 'numeric' 
-  });
-};
-
-const formatSalary = (salary: { min: number; max: number; currency: string } | undefined) => {
-  if (!salary) return null;
-  const format = (n: number) => new Intl.NumberFormat('en-US', { style: 'currency', currency: salary.currency, maximumFractionDigits: 0 }).format(n);
-  return `${format(salary.min)} - ${format(salary.max)}`;
-};
-
-// JSON-LD structured data for SEO
-const structuredData = job ? {
-  "@context": "https://schema.org",
-  "@type": "JobPosting",
-  "title": job.title,
-  "description": job.description,
-  "datePosted": job.postedAt,
-  "validThrough": job.expiresAt,
-  "employmentType": job.employmentType?.toUpperCase().replace('-', '_'),
-  "hiringOrganization": {
-    "@type": "Organization",
-    "name": job.company
-  },
-  "jobLocation": {
-    "@type": "Place",
-    "address": {
-      "@type": "PostalAddress",
-      "addressLocality": job.location
-    }
-  },
-  ...(job.salary && {
-    "baseSalary": {
-      "@type": "MonetaryAmount",
-      "currency": job.salary.currency,
-      "value": {
-        "@type": "QuantitativeValue",
-        "minValue": job.salary.min,
-        "maxValue": job.salary.max,
-        "unitText": "YEAR"
-      }
-    }
-  })
-} : null;
+const salary = job ? formatSalaryRange(job) : null;
+const perks = [
+    "Full Healthcare",
+    "Unlimited Vacation",
+    "Skill Development",
+    "Remote Working",
+    "Commuter Benefits",
+    "Give back programs",
+];
 ---
 
-<PageLayout 
-  title={job ? `${job.title} at ${job.company}` : 'Job Not Found'}
-  description={job ? `${job.title} position at ${job.company} - ${job.location}` : 'Job listing not found'}
->
-  {structuredData && (
-    <script type="application/ld+json" set:html={JSON.stringify(structuredData)} />
-  )}
-  
-  <div class="max-w-4xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
-    {error ? (
-      <div class="bg-red-50 dark:bg-red-900/20 border border-red-200 dark:border-red-800 rounded-xl p-6 text-center">
-        <p class="text-red-600 dark:text-red-400">{error}</p>
-        <a href="/jobs" class="text-primary-600 hover:underline mt-2 inline-block">← Back to jobs</a>
-      </div>
-    ) : job && (
-      <>
-        <!-- Breadcrumb -->
-        <nav class="mb-6 text-sm">
-          <ol class="flex items-center gap-2 text-slate-500 dark:text-slate-400">
-            <li><a href="/jobs" class="hover:text-primary-600">Jobs</a></li>
-            <li>/</li>
-            <li class="text-slate-900 dark:text-white truncate">{job.title}</li>
-          </ol>
-        </nav>
-        
-        <!-- Header -->
-        <header class="bg-white dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded-xl p-6 mb-6">
-          <div class="flex items-start justify-between gap-4 mb-4">
-            <div>
-              <h1 class="text-2xl sm:text-3xl font-bold text-slate-900 dark:text-white mb-2">
-                {job.title}
-              </h1>
-              <a 
-                href={`/companies/${job.companySlug}`}
-                class="text-lg text-primary-600 dark:text-primary-400 hover:underline"
-              >
-                {job.company}
-              </a>
-            </div>
-            <span class={`px-3 py-1.5 text-sm font-medium rounded-full ${job.source === 'linkedin' ? 'source-linkedin' : 'source-indeed'}`}>
-              {job.source}
-            </span>
-          </div>
-          
-          <div class="flex flex-wrap gap-4 text-sm text-slate-600 dark:text-slate-400 mb-6">
-            <span class="flex items-center gap-1">
-              <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M17.657 16.657L13.414 20.9a1.998 1.998 0 01-2.827 0l-4.244-4.243a8 8 0 1111.314 0z" />
-              </svg>
-              {job.location}
-            </span>
-            {job.isRemote && (
-              <span class="flex items-center gap-1 text-green-600 dark:text-green-400">
-                <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                  <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M3 12l2-2m0 0l7-7 7 7M5 10v10a1 1 0 001 1h3m10-11l2 2m-2-2v10a1 1 0 01-1 1h-3m-6 0a1 1 0 001-1v-4a1 1 0 011-1h2a1 1 0 011 1v4a1 1 0 001 1m-6 0h6" />
-                </svg>
-                Remote
-              </span>
+<PageLayout title={job ? `${job.title} at ${job.company}` : "Job Not Found"} description={job ? job.description : "Job detail page"}>
+    <section class="border-b border-slate-200 bg-[linear-gradient(180deg,#f3f6ff_0%,#fbfcff_100%)]">
+        <div class="mx-auto max-w-[1180px] px-6 py-12">
+            <a href="/jobs" class="text-base font-semibold text-[var(--jh-primary)]">Home / Companies / {job?.company || "Unknown"} / {job?.title || "Role"}</a>
+            {job && (
+                <div class="jh-card mt-8 flex flex-col gap-6 p-8 lg:flex-row lg:items-center lg:justify-between">
+                    <div class="flex items-start gap-5">
+                        <div class="flex h-20 w-20 items-center justify-center rounded-[1.6rem] bg-[linear-gradient(135deg,#e9ecff_0%,#635bff_100%)] text-3xl font-extrabold text-white">
+                            {getInitials(job.company)}
+                        </div>
+                        <div>
+                            <h1 class="text-5xl font-extrabold tracking-[-0.06em] text-slate-900">{job.title}</h1>
+                            <div class="mt-3 text-xl text-slate-500">{job.company} • {job.location} • {job.employmentType}</div>
+                            <div class="mt-4 flex flex-wrap gap-3">
+                                <span class="jh-tag jh-tag-marketing">{job.skills[0] || job.experienceLevel}</span>
+                                <span class="jh-tag jh-tag-design">{sourceLabel(job.source)}</span>
+                            </div>
+                        </div>
+                    </div>
+                    <div class="flex flex-wrap items-center gap-3">
+                        <SaveJobButton client:load jobId={job.id} initialSaved={job.isSaved} />
+                        <a href={job.sourceUrl} target="_blank" rel="noreferrer" class="jh-button px-8 py-4">Apply</a>
+                    </div>
+                </div>
             )}
-            <span class="flex items-center gap-1">
-              <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M21 13.255A23.931 23.931 0 0112 15c-3.183 0-6.22-.62-9-1.745M16 6V4a2 2 0 00-2-2h-4a2 2 0 00-2 2v2m4 6h.01M5 20h14a2 2 0 002-2V8a2 2 0 00-2-2H5a2 2 0 00-2 2v10a2 2 0 002 2z" />
-              </svg>
-              {job.employmentType}
-            </span>
-            <span class="flex items-center gap-1">
-              <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13 10V3L4 14h7v7l9-11h-7z" />
-              </svg>
-              {job.experienceLevel}
-            </span>
-            <span class="flex items-center gap-1">
-              <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M8 7V3m8 4V3m-9 8h10M5 21h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v12a2 2 0 002 2z" />
-              </svg>
-              Posted {formatDate(job.postedAt)}
-            </span>
-          </div>
-          
-          {formatSalary(job.salary) && (
-            <div class="p-4 bg-green-50 dark:bg-green-900/20 border border-green-200 dark:border-green-800 rounded-lg mb-6">
-              <div class="text-sm text-green-600 dark:text-green-400 mb-1">Salary Range</div>
-              <div class="text-xl font-bold text-green-700 dark:text-green-300">{formatSalary(job.salary)}</div>
-            </div>
-          )}
-          
-          <div class="flex items-center gap-3">
-            <a 
-              href={job.url}
-              target="_blank"
-              rel="noopener noreferrer"
-              class="inline-flex items-center gap-2 px-6 py-3 bg-primary-600 hover:bg-primary-700 text-white font-medium rounded-lg transition-colors"
-            >
-              Apply on {job.source.charAt(0).toUpperCase() + job.source.slice(1)}
-              <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M10 6H6a2 2 0 00-2 2v10a2 2 0 002 2h10a2 2 0 002-2v-4M14 4h6m0 0v6m0-6L10 14" />
-              </svg>
-            </a>
-            <SaveJobButton client:load jobId={job.id} />
-          </div>
-        </header>
-        
-        <!-- Skills -->
-        {job.skills && job.skills.length > 0 && (
-          <section class="bg-white dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded-xl p-6 mb-6">
-            <h2 class="text-lg font-semibold text-slate-900 dark:text-white mb-4">Required Skills</h2>
-            <div class="flex flex-wrap gap-2">
-              {job.skills.map((skill) => (
-                <a 
-                  href={`/jobs?q=${encodeURIComponent(skill)}`}
-                  class="skill-badge hover:bg-primary-200 dark:hover:bg-primary-600/30 transition-colors"
-                >
-                  {skill}
-                </a>
-              ))}
-            </div>
-          </section>
-        )}
-        
-        <!-- Description -->
-        <section class="bg-white dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded-xl p-6">
-          <h2 class="text-lg font-semibold text-slate-900 dark:text-white mb-4">Job Description</h2>
-          <div class="prose prose-slate dark:prose-invert max-w-none">
-            <p class="whitespace-pre-line text-slate-600 dark:text-slate-300">{job.description}</p>
-          </div>
-        </section>
-        
-        <!-- Back link -->
-        <div class="mt-8">
-          <a href="/jobs" class="text-primary-600 dark:text-primary-400 hover:underline">
-            ← Back to all jobs
-          </a>
         </div>
-      </>
-    )}
-  </div>
+    </section>
+
+    <section class="mx-auto max-w-[1180px] px-6 py-14">
+        {error ? (
+            <div class="rounded-[1.5rem] border border-[rgba(255,108,95,0.28)] bg-[rgba(255,108,95,0.08)] p-6 text-lg font-medium text-[var(--jh-coral)]">
+                {error}
+            </div>
+        ) : job && (
+            <>
+                <div class="grid gap-10 lg:grid-cols-[1.08fr_0.92fr]">
+                    <div class="space-y-8">
+                        <div class="jh-card p-8">
+                            <h2 class="text-[2.3rem] font-extrabold tracking-[-0.06em] text-slate-900">Description</h2>
+                            <p class="mt-5 whitespace-pre-line text-xl leading-10 text-slate-600">{job.description}</p>
+                        </div>
+
+                        <div class="jh-card p-8">
+                            <h2 class="text-[2.3rem] font-extrabold tracking-[-0.06em] text-slate-900">Required Skills</h2>
+                            <div class="mt-6 flex flex-wrap gap-3">
+                                {job.skills.map((skill, index) => (
+                                    <span class:list={["jh-tag", index % 2 === 0 ? "jh-tag-design" : "jh-tag-business"]}>{skill}</span>
+                                ))}
+                            </div>
+                        </div>
+
+                        <div class="jh-card p-8">
+                            <h2 class="text-[2.3rem] font-extrabold tracking-[-0.06em] text-slate-900">Perks & Benefits</h2>
+                            <div class="mt-6 grid gap-6 sm:grid-cols-2 xl:grid-cols-3">
+                                {perks.map((perk) => (
+                                    <div class="rounded-[1.4rem] border border-[var(--jh-border)] p-5">
+                                        <div class="text-[1.3rem] font-bold tracking-[-0.04em] text-slate-900">{perk}</div>
+                                        <p class="mt-3 text-lg leading-8 text-slate-500">A JobHuntly-styled benefit card to keep the page structure aligned with the Figma direction.</p>
+                                    </div>
+                                ))}
+                            </div>
+                        </div>
+                    </div>
+
+                    <div class="space-y-8">
+                        <div class="jh-card p-8">
+                            <h2 class="text-[2.2rem] font-extrabold tracking-[-0.06em] text-slate-900">About this role</h2>
+                            <div class="mt-6 h-2 overflow-hidden rounded-full bg-[var(--jh-soft)]">
+                                <div class="h-full w-2/5 rounded-full bg-[linear-gradient(90deg,#58d6be_0%,#8ae4d1_100%)]"></div>
+                            </div>
+                            <div class="mt-6 space-y-5 text-lg text-slate-600">
+                                <div class="flex items-center justify-between gap-4">
+                                    <span>Apply before</span>
+                                    <span class="font-semibold text-slate-900">{job.expiresAt ? formatAbsoluteDate(job.expiresAt) : "Open now"}</span>
+                                </div>
+                                <div class="flex items-center justify-between gap-4">
+                                    <span>Job posted on</span>
+                                    <span class="font-semibold text-slate-900">{formatAbsoluteDate(job.postedAt)}</span>
+                                </div>
+                                <div class="flex items-center justify-between gap-4">
+                                    <span>Job type</span>
+                                    <span class="font-semibold text-slate-900">{job.employmentType}</span>
+                                </div>
+                                <div class="flex items-center justify-between gap-4">
+                                    <span>Salary</span>
+                                    <span class="font-semibold text-slate-900">{salary || "Competitive"}</span>
+                                </div>
+                                <div class="flex items-center justify-between gap-4">
+                                    <span>Source</span>
+                                    <span class="font-semibold text-slate-900">{sourceLabel(job.source)}</span>
+                                </div>
+                            </div>
+                        </div>
+
+                        {company && (
+                            <div class="jh-card p-8">
+                                <div class="flex items-center gap-4">
+                                    <div class="flex h-20 w-20 items-center justify-center rounded-[1.5rem] bg-[linear-gradient(135deg,#e9ecff_0%,#635bff_100%)] text-3xl font-extrabold text-white">
+                                        {getInitials(company.name)}
+                                    </div>
+                                    <div>
+                                        <div class="text-[2rem] font-extrabold tracking-[-0.05em] text-slate-900">{company.name}</div>
+                                        <a href={`/companies/${company.slug}`} class="mt-1 inline-block text-lg font-semibold text-[var(--jh-primary)]">Read more about {company.name} →</a>
+                                    </div>
+                                </div>
+                                <p class="mt-5 text-lg leading-8 text-slate-500">{company.description}</p>
+                            </div>
+                        )}
+                    </div>
+                </div>
+
+                {similarJobs.length > 0 && (
+                    <div class="mt-14">
+                        <div class="mb-8 flex items-end justify-between gap-4">
+                            <h2 class="text-[2.4rem] font-extrabold tracking-[-0.06em] text-slate-900">Similar Jobs</h2>
+                            <a href="/jobs" class="text-lg font-semibold text-[var(--jh-primary)]">Show all jobs →</a>
+                        </div>
+                        <div class="grid gap-6 lg:grid-cols-2">
+                            {similarJobs.map((item) => <JobCard job={item} mode="list" />)}
+                        </div>
+                    </div>
+                )}
+            </>
+        )}
+    </section>
 </PageLayout>

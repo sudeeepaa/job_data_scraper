@@ -66,7 +66,7 @@ const formatSalary = (amount: number) => {
     {error ? (
       <div class="bg-red-50 dark:bg-red-900/20 border border-red-200 dark:border-red-800 rounded-xl p-6 text-center">
         <p class="text-red-600 dark:text-red-400">{error}</p>
-        <p class="text-sm text-red-500 mt-2">Make sure the API server is running on http://localhost:8080</p>
+        <p class="text-sm text-red-500 mt-2">Make sure the backend API is available.</p>
       </div>
     ) : (
       <>
@@ -187,7 +187,7 @@ const formatSalary = (amount: number) => {
       btn.textContent = 'Refreshing...';
       btn.setAttribute('disabled', 'true');
       try {
-        await fetch('http://localhost:8080/api/v1/analytics/refresh', { method: 'POST' });
+        await fetch('/api/v1/analytics/refresh', { method: 'POST' });
         window.location.reload();
       } catch {
         btn.textContent = 'Refresh Failed';

@@ -39,6 +39,7 @@ A full-stack job aggregation platform that pulls real listings from multiple sou
 ```bash
 cp .env.example .env
 # Edit .env with your API keys (optional — app works with seed data)
+# Local `go run ./cmd/server` now auto-loads `.env`
 ```
 
 ### 2. Start the Backend
@@ -96,6 +97,19 @@ go test ./internal/api/... -v
 | `ADZUNA_APP_KEY` | — | No | Adzuna application key |
 
 > **Note:** The app works without API keys using seed data. Add keys to enable live job fetching.
+
+### Optional Live Sync
+
+Use these to keep the local database warm with real API data in the background:
+
+| Variable | Example | Description |
+|----------|---------|-------------|
+| `LIVE_SYNC_QUERIES` | `golang developer|python developer` | `|`-separated searches to refresh periodically |
+| `LIVE_SYNC_LOCATIONS` | `Remote|San Francisco, CA` | Optional `|`-separated locations |
+| `LIVE_SYNC_INTERVAL` | `30m` | Sync cadence (`time.ParseDuration` format, or minutes) |
+| `LIVE_SYNC_ON_START` | `true` | Run one sync immediately on server startup |
+
+When enabled, the worker fetches page 1 for each query/location pair and refreshes analytics afterward.
 
 ## Data Sources
 

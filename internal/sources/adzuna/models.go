@@ -1,6 +1,9 @@
 package adzuna
 
-import "time"
+import (
+	"encoding/json"
+	"time"
+)
 
 // searchResponse is the top-level Adzuna API response.
 type searchResponse struct {
@@ -11,21 +14,21 @@ type searchResponse struct {
 
 // jobResult represents a single job from Adzuna.
 type jobResult struct {
-	ID                int          `json:"id"`
-	Title             string       `json:"title"`
-	Description       string       `json:"description"`
-	Company           companyInfo  `json:"company"`
-	Location          locationInfo `json:"location"`
-	SalaryMin         *float64     `json:"salary_min"`
-	SalaryMax         *float64     `json:"salary_max"`
-	SalaryIsPredicted int          `json:"salary_is_predicted"`
-	ContractType      string       `json:"contract_type"`
-	ContractTime      string       `json:"contract_time"`
-	Category          categoryInfo `json:"category"`
-	Created           string       `json:"created"`
-	RedirectURL       string       `json:"redirect_url"`
-	Latitude          float64      `json:"latitude"`
-	Longitude         float64      `json:"longitude"`
+	ID                json.RawMessage `json:"id"`
+	Title             string          `json:"title"`
+	Description       string          `json:"description"`
+	Company           companyInfo     `json:"company"`
+	Location          locationInfo    `json:"location"`
+	SalaryMin         *float64        `json:"salary_min"`
+	SalaryMax         *float64        `json:"salary_max"`
+	SalaryIsPredicted json.RawMessage `json:"salary_is_predicted"`
+	ContractType      string          `json:"contract_type"`
+	ContractTime      string          `json:"contract_time"`
+	Category          categoryInfo    `json:"category"`
+	Created           string          `json:"created"`
+	RedirectURL       string          `json:"redirect_url"`
+	Latitude          float64         `json:"latitude"`
+	Longitude         float64         `json:"longitude"`
 }
 
 type companyInfo struct {

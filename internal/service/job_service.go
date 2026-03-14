@@ -33,7 +33,15 @@ func (s *JobService) SearchJobs(ctx context.Context, query, location string, pag
 	if s.aggregator == nil {
 		return nil, nil
 	}
-	return s.aggregator.SearchAndStore(ctx, query, location, page)
+	return s.aggregator.SearchAndStore(ctx, query, location, page, false)
+}
+
+// RefreshJobs triggers a live search and bypasses the freshness cache.
+func (s *JobService) RefreshJobs(ctx context.Context, query, location string, page int) ([]domain.Job, error) {
+	if s.aggregator == nil {
+		return nil, nil
+	}
+	return s.aggregator.SearchAndStore(ctx, query, location, page, true)
 }
 
 // HasAggregator returns whether live search is available.

@@ -40,7 +40,6 @@ func (h *JobHandler) ListJobs(w http.ResponseWriter, r *http.Request) {
 
 	params := domain.JobQueryParams{
 		Query:           q.Get("q"),
-		Location:        q.Get("location"),
 		ExperienceLevel: q.Get("experience"),
 		Source:          q.Get("source"),
 		Sort:            sort,
@@ -58,10 +57,12 @@ func (h *JobHandler) ListJobs(w http.ResponseWriter, r *http.Request) {
 		params.IsRemote = &remote
 	}
 
-	// If refresh=true and a query is provided, trigger live API fetch
-	if q.Get("refresh") == "true" && params.Query != "" {
-		_, _ = h.svc.SearchJobs(r.Context(), params.Query, params.Location, pag.Page)
-		// Errors from live fetch are non-fatal — we still return cached/stored data below
+	// User-driven searches should pull fresh data before reading from the local DB.
+	// Use refresh=false to opt out when a caller explicitly wants cache-only results.
+	shouldRefresh := params.Query != "" && q.Get("refresh") != "false"
+	if shouldRefresh {
+		_, _ = h.svc.RefreshJobs(r.Context(), params.Query, "", pag.Page)
+		// Errors from live fetch are non-fatal — we still return cached/stored data below.
 	}
 
 	jobs, total, err := h.svc.ListJobs(r.Context(), params, pag)

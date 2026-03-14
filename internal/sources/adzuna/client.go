@@ -9,8 +9,8 @@ import (
 	"strings"
 	"time"
 
-	"github.com/google/uuid"
 	"github.com/samuelshine/job-data-scraper/internal/domain"
+	sourceutil "github.com/samuelshine/job-data-scraper/internal/sources"
 )
 
 const baseURL = "https://api.adzuna.com/v1/api/jobs"
@@ -109,10 +109,11 @@ func normalize(jr jobResult) domain.Job {
 
 	// Skills from description
 	skills := extractBasicSkills(jr.Description)
+	externalID := parseJobID(jr.ID)
 
 	return domain.Job{
-		ID:              uuid.New().String(),
-		ExternalID:      fmt.Sprintf("%d", jr.ID),
+		ID:              sourceutil.StableJobID("adzuna", externalID, jr.Title, jr.Company.DisplayName, jr.RedirectURL),
+		ExternalID:      externalID,
 		Title:           jr.Title,
 		Description:     jr.Description,
 		Company:         jr.Company.DisplayName,
@@ -129,6 +130,24 @@ func normalize(jr jobResult) domain.Job {
 		EmploymentType:  empType,
 		ExperienceLevel: "",
 	}
+}
+
+func parseJobID(raw json.RawMessage) string {
+	if len(raw) == 0 {
+		return ""
+	}
+
+	var asInt int64
+	if err := json.Unmarshal(raw, &asInt); err == nil {
+		return fmt.Sprintf("%d", asInt)
+	}
+
+	var asString string
+	if err := json.Unmarshal(raw, &asString); err == nil {
+		return strings.TrimSpace(asString)
+	}
+
+	return strings.Trim(string(raw), `"`)
 }
 
 func normalizeContractTime(raw string) string {

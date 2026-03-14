@@ -27,7 +27,7 @@ RUN CGO_ENABLED=0 GOOS=linux go build -ldflags="-s -w" -o /server ./cmd/server
 # ──────────────────────────────────────────────
 # Stage 3: Final minimal runtime
 # ──────────────────────────────────────────────
-FROM alpine:3.19
+FROM node:20-alpine
 
 RUN apk add --no-cache ca-certificates tzdata
 
@@ -38,13 +38,17 @@ COPY --from=backend-builder /server .
 
 # Copy built frontend (for potential static serving)
 COPY --from=frontend-builder /app/frontend/dist ./frontend/dist
+COPY --from=frontend-builder /app/frontend/node_modules ./frontend/node_modules
+COPY start.sh ./start.sh
 
 # Create data directory for SQLite
 RUN mkdir -p /data
+RUN chmod +x /app/start.sh
 
 ENV PORT=8080
+ENV FRONTEND_PORT=4321
 ENV DATABASE_PATH=/data/jobpulse.db
 
 EXPOSE 8080
 
-CMD ["./server"]
+CMD ["/app/start.sh"]

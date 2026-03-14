@@ -2,6 +2,9 @@ package api
 
 import (
 	"net/http"
+	"net/http/httputil"
+	"net/url"
+	"strings"
 
 	"github.com/go-chi/chi/v5"
 	chimiddleware "github.com/go-chi/chi/v5/middleware"
@@ -13,12 +16,13 @@ import (
 
 // RouterConfig holds all dependencies needed for the router.
 type RouterConfig struct {
-	JobHandler       *handlers.JobHandler
-	CompanyHandler   *handlers.CompanyHandler
-	AnalyticsHandler *handlers.AnalyticsHandler
-	AuthHandler      *handlers.AuthHandler
-	JWTSecret        string
-	CORSOrigins      []string
+	JobHandler        *handlers.JobHandler
+	CompanyHandler    *handlers.CompanyHandler
+	AnalyticsHandler  *handlers.AnalyticsHandler
+	AuthHandler       *handlers.AuthHandler
+	JWTSecret         string
+	CORSOrigins       []string
+	FrontendServerURL string
 }
 
 // NewRouter creates the HTTP router with all routes.
@@ -91,5 +95,30 @@ func NewRouter(cfg RouterConfig) *chi.Mux {
 		})
 	})
 
+	if cfg.FrontendServerURL != "" {
+		if proxy := buildFrontendProxy(cfg.FrontendServerURL); proxy != nil {
+			r.NotFound(func(w http.ResponseWriter, r *http.Request) {
+				if strings.HasPrefix(r.URL.Path, "/api/") {
+					http.NotFound(w, r)
+					return
+				}
+				proxy.ServeHTTP(w, r)
+			})
+		}
+	}
+
 	return r
+}
+
+func buildFrontendProxy(rawURL string) *httputil.ReverseProxy {
+	target, err := url.Parse(rawURL)
+	if err != nil {
+		return nil
+	}
+
+	proxy := httputil.NewSingleHostReverseProxy(target)
+	proxy.ErrorHandler = func(w http.ResponseWriter, r *http.Request, err error) {
+		http.Error(w, "frontend is unavailable", http.StatusBadGateway)
+	}
+	return proxy
 }

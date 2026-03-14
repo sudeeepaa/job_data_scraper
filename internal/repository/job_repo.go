@@ -30,8 +30,11 @@ func (r *JobRepo) ListJobs(ctx context.Context, params domain.JobQueryParams, pa
 		args["query"] = "%" + strings.ToLower(params.Query) + "%"
 	}
 	if params.Location != "" {
-		where = append(where, "LOWER(location) LIKE :location")
-		args["location"] = "%" + strings.ToLower(params.Location) + "%"
+		for idx, term := range splitLocationTerms(params.Location) {
+			key := fmt.Sprintf("location_%d", idx)
+			where = append(where, fmt.Sprintf("LOWER(location) LIKE :%s", key))
+			args[key] = "%" + term + "%"
+		}
 	}
 	if params.ExperienceLevel != "" {
 		where = append(where, "experience_level = :experience_level")
@@ -112,6 +115,27 @@ func (r *JobRepo) ListJobs(ctx context.Context, params domain.JobQueryParams, pa
 	return jobs, total, nil
 }
 
+func splitLocationTerms(location string) []string {
+	rawParts := strings.Split(strings.ToLower(location), ",")
+	terms := make([]string, 0, len(rawParts))
+	seen := make(map[string]bool, len(rawParts))
+
+	for _, part := range rawParts {
+		part = strings.TrimSpace(part)
+		if part == "" || seen[part] {
+			continue
+		}
+		seen[part] = true
+		terms = append(terms, part)
+	}
+
+	if len(terms) == 0 {
+		return []string{strings.TrimSpace(strings.ToLower(location))}
+	}
+
+	return terms
+}
+
 // GetJob returns a single job by ID.
 func (r *JobRepo) GetJob(ctx context.Context, id string) (*domain.Job, error) {
 	var job domain.Job
@@ -134,9 +158,15 @@ func (r *JobRepo) UpsertJob(ctx context.Context, job *domain.Job) error {
 		ON CONFLICT(id) DO UPDATE SET
 		    title = excluded.title,
 		    description = excluded.description,
+		    company = excluded.company,
+		    company_slug = excluded.company_slug,
+		    location = excluded.location,
 		    salary_min = excluded.salary_min,
 		    salary_max = excluded.salary_max,
 		    salary_currency = excluded.salary_currency,
+		    posted_at = excluded.posted_at,
+		    expires_at = excluded.expires_at,
+		    source = excluded.source,
 		    source_url = excluded.source_url,
 		    skills = excluded.skills,
 		    is_remote = excluded.is_remote,
@@ -166,9 +196,15 @@ func (r *JobRepo) UpsertJobs(ctx context.Context, jobs []domain.Job) error {
 		ON CONFLICT(id) DO UPDATE SET
 		    title = excluded.title,
 		    description = excluded.description,
+		    company = excluded.company,
+		    company_slug = excluded.company_slug,
+		    location = excluded.location,
 		    salary_min = excluded.salary_min,
 		    salary_max = excluded.salary_max,
 		    salary_currency = excluded.salary_currency,
+		    posted_at = excluded.posted_at,
+		    expires_at = excluded.expires_at,
+		    source = excluded.source,
 		    source_url = excluded.source_url,
 		    skills = excluded.skills,
 		    is_remote = excluded.is_remote,

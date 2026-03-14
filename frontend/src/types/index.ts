@@ -1,6 +1,4 @@
-// Job types matching Go backend models
-
-export interface Salary {
+export interface SalaryRange {
     min: number;
     max: number;
     currency: string;
@@ -12,19 +10,22 @@ export interface JobSummary {
     company: string;
     companySlug: string;
     location: string;
-    salary?: Salary;
+    salaryMin?: number;
+    salaryMax?: number;
+    salaryCurrency?: string;
     postedAt: string;
-    source: 'linkedin' | 'indeed';
+    source: string;
+    sourceUrl: string;
     skills: string[];
     isRemote: boolean;
     experienceLevel: string;
+    isSaved?: boolean;
 }
 
 export interface Job extends JobSummary {
     description: string;
     expiresAt?: string;
     employmentType: string;
-    url: string;
 }
 
 export interface Company {
@@ -80,7 +81,6 @@ export interface AnalyticsSummary {
     remoteJobsCount: number;
 }
 
-// Market trends types (Phase 3 endpoints)
 export interface MarketTrend {
     skillName: string;
     mentionCount: number;
@@ -103,7 +103,6 @@ export interface SalaryStats {
     totalWithSalary: number;
 }
 
-// Auth types
 export interface AuthResponse {
     token: string;
     user: UserProfile;
@@ -117,10 +116,8 @@ export interface UserProfile {
     updatedAt: string;
 }
 
-export interface SavedJobEntry {
-    userId: string;
-    jobId: string;
-    savedAt: string;
+export interface SavedJobsResponse {
+    data: JobSummary[];
 }
 
 export interface APIError {

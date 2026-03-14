@@ -15,11 +15,13 @@ import (
 	"github.com/samuelshine/job-data-scraper/internal/sources"
 	"github.com/samuelshine/job-data-scraper/internal/sources/adzuna"
 	"github.com/samuelshine/job-data-scraper/internal/sources/jsearch"
+	"github.com/samuelshine/job-data-scraper/internal/sources/scrapebridge"
 )
 
 func main() {
 	// Load configuration
 	cfg := config.LoadConfig()
+	ctx := context.Background()
 
 	// Initialize database
 	db, err := database.NewDatabase(cfg.DatabasePath)
@@ -29,7 +31,7 @@ func main() {
 	defer db.Close()
 
 	// Seed database with initial data (idempotent)
-	if err := repository.SeedDatabase(context.Background(), db); err != nil {
+	if err := repository.SeedDatabase(ctx, db); err != nil {
 		log.Fatalf("❌ Failed to seed database: %v", err)
 	}
 
@@ -56,6 +58,13 @@ func main() {
 		log.Printf("⚠️  ADZUNA_APP_ID/KEY not set — Adzuna source disabled")
 	}
 
+	if cfg.ScrapeBridgeURL != "" {
+		srcs = append(srcs, scrapebridge.New(cfg.ScrapeBridgeURL, cfg.ScrapeBridgeToken, cfg.ScrapeBridgeSources))
+		log.Printf("✅ Scrape bridge source enabled for %v", cfg.ScrapeBridgeSources)
+	} else {
+		log.Printf("⚠️  SCRAPE_BRIDGE_URL not set — scrape bridge source disabled")
+	}
+
 	// Build aggregator (nil if no sources)
 	var aggregator *service.Aggregator
 	if len(srcs) > 0 {
@@ -69,6 +78,10 @@ func main() {
 	jobService := service.NewJobService(jobRepo, userRepo, cacheRepo, trendsRepo, aggregator)
 	authService := service.NewAuthService(userRepo, cfg.JWTSecret)
 
+	// Optionally keep the local database warm with periodic live syncs.
+	liveSync := service.NewLiveSyncWorker(jobService, cfg.LiveSyncQueries, cfg.LiveSyncLocations, cfg.LiveSyncInterval)
+	liveSync.Start(ctx, cfg.LiveSyncOnStart)
+
 	// Initialize handlers
 	jobHandler := handlers.NewJobHandler(jobService)
 	companyHandler := handlers.NewCompanyHandler(jobService)
@@ -77,12 +90,13 @@ func main() {
 
 	// Create router
 	router := api.NewRouter(api.RouterConfig{
-		JobHandler:       jobHandler,
-		CompanyHandler:   companyHandler,
-		AnalyticsHandler: analyticsHandler,
-		AuthHandler:      authHandler,
-		JWTSecret:        cfg.JWTSecret,
-		CORSOrigins:      cfg.CORSOrigins,
+		JobHandler:        jobHandler,
+		CompanyHandler:    companyHandler,
+		AnalyticsHandler:  analyticsHandler,
+		AuthHandler:       authHandler,
+		JWTSecret:         cfg.JWTSecret,
+		CORSOrigins:       cfg.CORSOrigins,
+		FrontendServerURL: cfg.FrontendServerURL,
 	})
 
 	// Start server

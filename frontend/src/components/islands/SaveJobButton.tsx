@@ -1,18 +1,19 @@
-import { useState, useEffect } from 'preact/hooks';
-import { saveJob, unsaveJob } from '../../lib/api';
-import { getToken, isLoggedIn } from '../../lib/auth';
+import { useState } from "preact/hooks";
+import { saveJob, unsaveJob } from "../../lib/api";
+import { getToken, isLoggedIn } from "../../lib/auth";
 
 interface Props {
     jobId: string;
+    initialSaved?: boolean;
 }
 
-export default function SaveJobButton({ jobId }: Props) {
-    const [saved, setSaved] = useState(false);
+export default function SaveJobButton({ jobId, initialSaved = false }: Props) {
+    const [saved, setSaved] = useState(initialSaved);
     const [loading, setLoading] = useState(false);
 
     const handleClick = async () => {
         if (!isLoggedIn()) {
-            window.location.href = '/auth/login';
+            window.location.href = "/auth/login";
             return;
         }
 
@@ -27,8 +28,6 @@ export default function SaveJobButton({ jobId }: Props) {
                 await saveJob(token, jobId);
                 setSaved(true);
             }
-        } catch {
-            // Silently handle
         } finally {
             setLoading(false);
         }
@@ -38,20 +37,21 @@ export default function SaveJobButton({ jobId }: Props) {
         <button
             onClick={handleClick}
             disabled={loading}
-            class={`p-2 rounded-lg transition-colors ${saved
-                    ? 'text-red-500 hover:text-red-600 bg-red-50 dark:bg-red-900/20'
-                    : 'text-slate-400 hover:text-red-500 hover:bg-slate-100 dark:hover:bg-slate-700'
-                }`}
-            title={saved ? 'Remove from saved' : 'Save job'}
+            class={`rounded-[1.1rem] border px-4 py-4 transition-colors ${
+                saved
+                    ? "border-[rgba(255,108,95,0.24)] bg-[rgba(255,108,95,0.08)] text-[var(--jh-coral)]"
+                    : "border-[var(--jh-border)] bg-white text-slate-500 hover:border-[var(--jh-primary)] hover:text-[var(--jh-primary)]"
+            }`}
+            title={saved ? "Remove from saved" : "Save job"}
         >
             {loading ? (
-                <svg class="w-5 h-5 animate-spin" fill="none" viewBox="0 0 24 24">
+                <svg class="h-5 w-5 animate-spin" fill="none" viewBox="0 0 24 24">
                     <circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4" />
-                    <path class="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z" />
+                    <path class="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.37 0 0 5.37 0 12h4zm2 5.29A7.95 7.95 0 014 12H0c0 3.04 1.14 5.82 3 7.94l3-2.65z" />
                 </svg>
             ) : (
-                <svg class="w-5 h-5" fill={saved ? 'currentColor' : 'none'} stroke="currentColor" viewBox="0 0 24 24">
-                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4.318 6.318a4.5 4.5 0 000 6.364L12 20.364l7.682-7.682a4.5 4.5 0 00-6.364-6.364L12 7.636l-1.318-1.318a4.5 4.5 0 00-6.364 0z" />
+                <svg class="h-5 w-5" fill={saved ? "currentColor" : "none"} stroke="currentColor" viewBox="0 0 24 24">
+                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4.32 6.32a4.5 4.5 0 000 6.36L12 20.36l7.68-7.68a4.5 4.5 0 00-6.36-6.36L12 7.64l-1.32-1.32a4.5 4.5 0 00-6.36 0z" />
                 </svg>
             )}
         </button>

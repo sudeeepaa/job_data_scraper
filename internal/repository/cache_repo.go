@@ -31,10 +31,16 @@ func (r *CacheRepo) GetCacheEntry(ctx context.Context, queryHash string) (*domai
 
 // SetCacheEntry creates or updates a cache entry.
 func (r *CacheRepo) SetCacheEntry(ctx context.Context, entry *domain.SearchCacheEntry) error {
+	if entry.FetchedAt.IsZero() {
+		entry.FetchedAt = time.Now()
+	}
+
 	query := `
 		INSERT INTO search_cache (query_hash, query_text, filters, result_count, fetched_at)
 		VALUES (:query_hash, :query_text, :filters, :result_count, :fetched_at)
 		ON CONFLICT(query_hash) DO UPDATE SET
+		    query_text = excluded.query_text,
+		    filters = excluded.filters,
 		    result_count = excluded.result_count,
 		    fetched_at = excluded.fetched_at
 	`

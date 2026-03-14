@@ -35,18 +35,18 @@ const getPageUrl = (page: number) => {
 ---
 
 {totalPages > 1 && (
-  <nav class="flex items-center justify-center gap-1" aria-label="Pagination">
+  <nav class="flex items-center justify-center gap-2" aria-label="Pagination">
     <!-- Previous -->
     {prevPage ? (
       <a 
         href={getPageUrl(prevPage)}
-        class="px-3 py-2 text-sm font-medium text-slate-600 hover:text-slate-900 hover:bg-slate-100 dark:text-slate-400 dark:hover:text-white dark:hover:bg-slate-800 rounded-lg"
+        class="rounded-[1rem] border border-[var(--jh-border)] bg-white px-4 py-3 text-base font-semibold text-slate-600 hover:border-[var(--jh-primary)] hover:text-[var(--jh-primary)]"
       >
-        ← Previous
+        ←
       </a>
     ) : (
-      <span class="px-3 py-2 text-sm font-medium text-slate-400 dark:text-slate-600 cursor-not-allowed">
-        ← Previous
+      <span class="cursor-not-allowed rounded-[1rem] border border-[var(--jh-border)] px-4 py-3 text-base font-semibold text-slate-300">
+        ←
       </span>
     )}
     
@@ -59,10 +59,10 @@ const getPageUrl = (page: number) => {
           <a
             href={getPageUrl(page as number)}
             class:list={[
-              'px-3 py-2 text-sm font-medium rounded-lg',
+              'rounded-[1rem] px-4 py-3 text-base font-semibold',
               page === currentPage
-                ? 'bg-primary-600 text-white'
-                : 'text-slate-600 hover:text-slate-900 hover:bg-slate-100 dark:text-slate-400 dark:hover:text-white dark:hover:bg-slate-800'
+                ? 'bg-[var(--jh-primary)] text-white shadow-[0_18px_35px_rgba(99,91,255,0.2)]'
+                : 'text-slate-600 hover:bg-[var(--jh-soft)] hover:text-[var(--jh-primary)]'
             ]}
           >
             {page}
@@ -72,7 +72,7 @@ const getPageUrl = (page: number) => {
     </div>
     
     <!-- Mobile page indicator -->
-    <span class="sm:hidden px-3 py-2 text-sm text-slate-600 dark:text-slate-400">
+    <span class="sm:hidden px-3 py-2 text-sm text-slate-600">
       Page {currentPage} of {totalPages}
     </span>
     
@@ -80,13 +80,13 @@ const getPageUrl = (page: number) => {
     {nextPage ? (
       <a 
         href={getPageUrl(nextPage)}
-        class="px-3 py-2 text-sm font-medium text-slate-600 hover:text-slate-900 hover:bg-slate-100 dark:text-slate-400 dark:hover:text-white dark:hover:bg-slate-800 rounded-lg"
+        class="rounded-[1rem] border border-[var(--jh-border)] bg-white px-4 py-3 text-base font-semibold text-slate-600 hover:border-[var(--jh-primary)] hover:text-[var(--jh-primary)]"
       >
-        Next →
+        →
       </a>
     ) : (
-      <span class="px-3 py-2 text-sm font-medium text-slate-400 dark:text-slate-600 cursor-not-allowed">
-        Next →
+      <span class="cursor-not-allowed rounded-[1rem] border border-[var(--jh-border)] px-4 py-3 text-base font-semibold text-slate-300">
+        →
       </span>
     )}
   </nav>
