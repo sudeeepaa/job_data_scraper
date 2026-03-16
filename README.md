@@ -1,56 +1,71 @@
-# JobPulse — Job Data Platform
+# JobHuntly Job Data App
 
-A full-stack job aggregation platform that pulls real listings from multiple sources, lets users search and filter jobs, shows market trend insights, and redirects users to apply. Built with **Go** backend (goroutines, SQLite, JWT auth) and **Astro** frontend.
+A full-stack job search app with:
 
-> 51 tests | Multi-stage Docker | Zero external dependencies
+- Go backend API
+- Astro frontend
+- SQLite persistence
+- live ingestion from job APIs
+- optional external and built-in scraping
+- cookie-based user sessions
+- bookmarks and analytics
 
-## Features
+The app is packaged to run through a **single Docker container**. The container starts the Astro frontend internally and exposes the whole product through the Go server on port `8080`.
 
-- 🔍 **Real Job Data** - Aggregates from RapidAPI JSearch + Adzuna
-- 🎯 **Smart Filters** - Location, experience, salary, source, remote
-- 📊 **Analytics Dashboard** - Trending skills and market insights
-- 🔐 **User Accounts** - Register, login, save/bookmark jobs
-- ⚡ **Concurrent Fetching** - Goroutine fan-out/fan-in across sources
-- 📦 **Hybrid Caching** - 24h TTL with manual refresh
-- 🌙 **Dark Mode** - Beautiful dark/light theme support
+## What Works
+
+- Search jobs by role
+- Filter jobs by employment type, experience, source, and remote-only
+- Save and unsave jobs
+- Register and log in with server-backed session cookies
+- Browse companies
+- View analytics and source health
+- Ingest jobs from JSearch and Adzuna
+- Optionally ingest from an external scrape bridge
+- Optionally enable experimental built-in HTML scraping
 
 ## Tech Stack
 
 ### Backend
-- **Go** with chi router
-- **SQLite** via modernc.org/sqlite (zero-dependency)
-- **JWT** authentication (bcrypt, HS256)
-- Goroutine-based job aggregator
-- Repository pattern with sqlx
+
+- Go
+- chi router
+- SQLite via `modernc.org/sqlite`
+- JWT-backed `HttpOnly` cookie sessions
+- sqlx
 
 ### Frontend
-- **Astro** with hybrid SSR/SSG
-- **Preact** for interactive islands
-- **Tailwind CSS 4** for styling
 
-## Quick Start
+- Astro
+- Preact islands
+- Tailwind CSS
+
+## Local Development
 
 ### Prerequisites
-- Go 1.21+
+
+- Go 1.25+
 - Node.js 20+
 
-### 1. Configure Environment
+### 1. Configure environment
 
 ```bash
 cp .env.example .env
-# Edit .env with your API keys (optional — app works with seed data)
-# Local `go run ./cmd/server` now auto-loads `.env`
 ```
 
-### 2. Start the Backend
+Edit `.env` with any API keys you want to use.
+
+The backend auto-loads `.env` for local runs.
+
+### 2. Run the backend
 
 ```bash
 go run ./cmd/server
 ```
 
-The API will be available at `http://localhost:8080`
+The API will be available at [http://localhost:8080](http://localhost:8080).
 
-### 3. Start the Frontend
+### 3. Run the frontend
 
 ```bash
 cd frontend
@@ -58,137 +73,200 @@ npm install
 npm run dev
 ```
 
-The frontend will be available at `http://localhost:4321`
+The frontend will be available at [http://localhost:4321](http://localhost:4321).
 
-### Docker
+## Single-Container Docker Run
+
+### Build the image
 
 ```bash
-# Build and run everything
+docker build -t jobhuntly-app .
+```
+
+### Run the image
+
+```bash
+docker run --env-file .env -p 8080:8080 -v jobhuntly-data:/data jobhuntly-app
+```
+
+Open [http://localhost:8080](http://localhost:8080).
+
+The single container will:
+
+1. start Astro internally on `127.0.0.1:4321`
+2. start the Go server on `0.0.0.0:8080`
+3. proxy all frontend routes through the Go server
+4. keep SQLite data in `/data/jobpulse.db`
+
+## Docker Compose
+
+`docker-compose.yml` now runs the app as a **single service**:
+
+```bash
 docker compose up --build
-
-# Or just the API
-docker build -t jobpulse-api .
-docker run -p 8080:8080 -v jobpulse-data:/data jobpulse-api
 ```
 
-### Run Tests
-
-```bash
-# All tests (repo + service + API integration)
-go test ./... -v
-
-# Just unit tests
-go test ./internal/repository/... ./internal/service/... -v
-
-# API integration tests only
-go test ./internal/api/... -v
-```
+Then open [http://localhost:8080](http://localhost:8080).
 
 ## Environment Variables
 
-| Variable | Default | Required | Description |
-|----------|---------|----------|-------------|
-| `PORT` | `8080` | No | Server port |
-| `DATABASE_PATH` | `jobpulse.db` | No | SQLite database file |
-| `JWT_SECRET` | dev default | **Yes (prod)** | JWT signing secret |
-| `CORS_ORIGINS` | `http://localhost:4321` | No | Allowed CORS origins |
-| `JSEARCH_API_KEY` | — | No | RapidAPI JSearch key |
-| `ADZUNA_APP_ID` | — | No | Adzuna application ID |
-| `ADZUNA_APP_KEY` | — | No | Adzuna application key |
+### Core
 
-> **Note:** The app works without API keys using seed data. Add keys to enable live job fetching.
+| Variable | Default | Description |
+|---|---|---|
+| `PORT` | `8080` | Public server port |
+| `DATABASE_PATH` | `jobpulse.db` | SQLite database path |
+| `JWT_SECRET` | dev default | JWT signing secret; set a strong value in production |
+| `CORS_ORIGINS` | local defaults | Allowed origins |
+| `FRONTEND_SERVER_URL` | empty | Normally set automatically by `start.sh` inside the Docker image |
 
-### Optional Live Sync
+### API ingestion
 
-Use these to keep the local database warm with real API data in the background:
+| Variable | Description |
+|---|---|
+| `JSEARCH_API_KEY` | RapidAPI JSearch key |
+| `ADZUNA_APP_ID` | Adzuna app id |
+| `ADZUNA_APP_KEY` | Adzuna app key |
+
+### Background live sync
 
 | Variable | Example | Description |
-|----------|---------|-------------|
-| `LIVE_SYNC_QUERIES` | `golang developer|python developer` | `|`-separated searches to refresh periodically |
-| `LIVE_SYNC_LOCATIONS` | `Remote|San Francisco, CA` | Optional `|`-separated locations |
-| `LIVE_SYNC_INTERVAL` | `30m` | Sync cadence (`time.ParseDuration` format, or minutes) |
-| `LIVE_SYNC_ON_START` | `true` | Run one sync immediately on server startup |
+|---|---|---|
+| `LIVE_SYNC_QUERIES` | `golang developer|python developer` | Queries refreshed in the background |
+| `LIVE_SYNC_LOCATIONS` | `Remote|San Francisco, CA` | Optional location list for background sync |
+| `LIVE_SYNC_INTERVAL` | `30m` | Sync cadence |
+| `LIVE_SYNC_ON_START` | `true` | Run one sync on startup |
 
-When enabled, the worker fetches page 1 for each query/location pair and refreshes analytics afterward.
+### External scrape bridge
 
-## Data Sources
+| Variable | Description |
+|---|---|
+| `SCRAPE_BRIDGE_URL` | External scraping worker endpoint |
+| `SCRAPE_BRIDGE_TOKEN` | Optional bearer token for the bridge |
+| `SCRAPE_BRIDGE_SOURCES` | Comma- or pipe-separated sources, for example `linkedin,indeed` |
 
-| Source | API | Rate Limit |
-|--------|-----|------------|
-| JSearch | RapidAPI JSearch | ~200 req/month (free) |
-| Adzuna | Adzuna REST API | ~250 req/day (free) |
+### Experimental built-in scrapers
 
-Jobs are fetched on-demand when users search with `refresh=true`, cached for 24 hours, and deduplicated across sources.
+These are **optional** and should be treated as best-effort ingestion, not as your most reliable production source.
+
+| Variable | Default | Description |
+|---|---|---|
+| `ENABLE_BUILTIN_SCRAPERS` | `false` | Enables built-in HTML scraping |
+| `BUILTIN_SCRAPER_SOURCES` | `linkedin,indeed` | Scraper providers to enable |
+
+## Ingestion Notes
+
+### API ingestion
+
+The app can ingest directly from:
+
+- JSearch
+- Adzuna
+
+Search requests with a role query trigger a live refresh before reading from local storage. Freshly fetched jobs are stored in SQLite and also returned directly if the local DB query layer misses them.
+
+### Built-in scraping
+
+The app now includes an **experimental** built-in scraping source for LinkedIn-style and Indeed-style public HTML pages.
+
+Important:
+
+- these pages can change without notice
+- rate limits and anti-bot protections can break scraping
+- API sources are still more stable than scraping
+
+If you need stronger scraping reliability, prefer the external scrape bridge path.
+
+## Authentication and Sessions
+
+- Registration and login are implemented
+- Sessions are stored in an `HttpOnly` cookie
+- Logout clears the cookie
+- Saved jobs and profile routes use the cookie session
+
+There is **no email verification** and **no password reset flow** in the current app.
 
 ## API Endpoints
 
 ### Public
 
 | Endpoint | Description |
-|----------|-------------|
+|---|---|
 | `GET /health` | Health check |
-| `GET /api/v1/jobs` | List jobs with filters & pagination |
-| `GET /api/v1/jobs/:id` | Get job details |
+| `GET /api/v1/jobs` | List jobs |
+| `GET /api/v1/jobs/{id}` | Get job details |
 | `GET /api/v1/companies` | List companies |
-| `GET /api/v1/companies/:slug` | Get company with jobs |
+| `GET /api/v1/companies/{slug}` | Get company details |
+| `GET /api/v1/filters` | Job filter options |
+| `GET /api/v1/analytics/summary` | Analytics summary |
 | `GET /api/v1/analytics/skills` | Top skills |
-| `GET /api/v1/analytics/summary` | Stats overview |
-| `GET /api/v1/analytics/trends` | Market trends by skill |
+| `GET /api/v1/analytics/trends` | Market trends |
 | `GET /api/v1/analytics/sources` | Source distribution |
+| `GET /api/v1/analytics/source-health` | Source health status |
 | `GET /api/v1/analytics/salary` | Salary statistics |
-| `POST /api/v1/analytics/refresh` | Recompute trends |
-| `GET /api/v1/filters` | Available filter options |
+| `POST /api/v1/analytics/refresh` | Refresh analytics snapshots |
+| `POST /api/v1/auth/register` | Register |
+| `POST /api/v1/auth/login` | Login |
+| `POST /api/v1/auth/logout` | Logout |
+| `GET /api/v1/auth/session` | Current session status |
 
-### Auth
-
-| Endpoint | Description |
-|----------|-------------|
-| `POST /api/v1/auth/register` | Register (email, password, name) |
-| `POST /api/v1/auth/login` | Login (returns JWT) |
-
-### Protected (Bearer token required)
+### Authenticated
 
 | Endpoint | Description |
-|----------|-------------|
-| `GET /api/v1/me` | Get user profile |
-| `GET /api/v1/me/saved-jobs` | List saved jobs |
-| `POST /api/v1/me/saved-jobs/:id` | Save a job |
-| `DELETE /api/v1/me/saved-jobs/:id` | Unsave a job |
+|---|---|
+| `GET /api/v1/me` | Current user profile |
+| `GET /api/v1/me/saved-jobs` | Saved jobs |
+| `POST /api/v1/me/saved-jobs/{id}` | Save a job |
+| `DELETE /api/v1/me/saved-jobs/{id}` | Unsave a job |
 
-### Query Parameters (Jobs)
+## Run Tests
 
-| Param | Description |
-|-------|-------------|
-| `q` | Search query |
-| `location` | Filter by location |
-| `experience` | Filter by level (entry, mid, senior, lead) |
-| `source` | Filter by source (jsearch, adzuna) |
-| `remote` | Filter remote only (`true`) |
-| `salary_min` | Minimum salary filter |
-| `refresh` | Trigger live API fetch (`true`) |
-| `page` | Page number |
-| `limit` | Items per page (default: 20) |
+### Backend
+
+```bash
+go test ./...
+```
+
+### Frontend build verification
+
+```bash
+cd frontend
+npm run build
+```
 
 ## Project Structure
 
-```
+```text
 job-data-scraper/
-├── cmd/server/              # Go server entry point
+├── cmd/server/
 ├── internal/
-│   ├── api/                 # HTTP handlers, middleware, routes + integration tests
-│   ├── config/              # Environment variable loading
+│   ├── api/
+│   ├── config/
 │   ├── database/
-│   │   └── migrations/      # Embedded SQL migrations (001, 002)
-│   ├── domain/              # Domain models (Job, User, Company, etc.)
-│   ├── repository/          # Data access layer + unit tests
-│   ├── service/             # Business logic + unit tests
-│   └── sources/             # Job API clients (JSearch, Adzuna)
-├── frontend/                # Astro frontend
-├── Dockerfile               # Multi-stage build (Node → Go → Alpine)
-├── docker-compose.yml       # Full stack deployment
-├── .env.example             # Environment template
+│   ├── domain/
+│   ├── repository/
+│   ├── service/
+│   └── sources/
+│       ├── adzuna/
+│       ├── jsearch/
+│       ├── scrapebridge/
+│       └── webscrape/
+├── frontend/
+├── Dockerfile
+├── docker-compose.yml
+├── start.sh
 └── README.md
 ```
+
+## Production Notes
+
+Recommended for real deployment:
+
+- set a strong `JWT_SECRET`
+- mount `/data` as a persistent volume
+- provide real API credentials
+- treat built-in scraping as optional, not primary
+- monitor `/api/v1/analytics/source-health`
 
 ## License
 

@@ -17,12 +17,12 @@ const tags = job.skills.slice(0, 2);
 <article
     class:list={[
         "jh-card jh-card-hover overflow-hidden",
-        isGrid ? "flex h-full flex-col p-8" : "grid gap-6 p-7 lg:grid-cols-[1fr_auto]",
+        isGrid ? "flex h-full flex-col p-6" : "grid gap-6 p-7 lg:grid-cols-[1fr_auto]",
     ]}
 >
     <div class:list={[isGrid ? "flex h-full flex-col" : "flex min-w-0 items-start gap-5"]}>
         <div class="flex items-start gap-5">
-            <div class="flex h-16 w-16 shrink-0 items-center justify-center rounded-[1.35rem] bg-[linear-gradient(135deg,#dff8f0_0%,#74cfbf_100%)] text-xl font-extrabold tracking-[-0.04em] text-slate-900">
+            <div class="flex h-14 w-14 shrink-0 items-center justify-center rounded-[1.2rem] bg-[linear-gradient(135deg,#dff8f0_0%,#74cfbf_100%)] text-lg font-extrabold tracking-[-0.04em] text-slate-900">
                 {getInitials(job.company)}
             </div>
             <div class="min-w-0">
@@ -31,11 +31,17 @@ const tags = job.skills.slice(0, 2);
                     <span class="jh-tag jh-tag-design">{sourceLabel(job.source)}</span>
                 </div>
                 <a href={`/jobs/${job.id}`} class="group block">
-                    <h3 class="text-[1.95rem] font-extrabold leading-tight tracking-[-0.05em] text-slate-900 group-hover:text-[var(--jh-primary)]">
+                    <h3 class:list={[
+                        "font-extrabold leading-tight tracking-[-0.05em] text-slate-900 group-hover:text-[var(--jh-primary)] break-words",
+                        isGrid ? "jh-line-clamp-3 text-[1.45rem]" : "text-[1.95rem]",
+                    ]}>
                         {job.title}
                     </h3>
                 </a>
-                <div class="mt-2 text-lg text-slate-500">
+                <div class:list={[
+                    "mt-2 text-slate-500 break-words",
+                    isGrid ? "jh-line-clamp-2 text-base leading-6" : "text-lg",
+                ]}>
                     <a href={`/companies/${job.companySlug}`} class="font-semibold text-slate-700 hover:text-[var(--jh-primary)]">{job.company}</a>
                     <span> • {job.location}</span>
                 </div>
@@ -46,32 +52,35 @@ const tags = job.skills.slice(0, 2);
             <div class="mt-4 flex flex-wrap gap-3">
                 {tags.length > 0 ? (
                     tags.map((tag, index) => (
-                        <span class:list={["jh-tag", index === 0 ? "jh-tag-marketing" : "jh-tag-design"]}>{tag}</span>
+                        <span class:list={["jh-tag max-w-full truncate", index === 0 ? "jh-tag-marketing" : "jh-tag-design"]} title={tag}>{tag}</span>
                     ))
                 ) : (
-                    <span class="jh-tag jh-tag-marketing">{job.experienceLevel}</span>
+                    <span class="jh-tag jh-tag-marketing max-w-full truncate" title={job.experienceLevel}>{job.experienceLevel}</span>
                 )}
             </div>
             <div class="mt-6 h-2 overflow-hidden rounded-full bg-[var(--jh-soft)]">
                 <div class="h-full w-2/5 rounded-full bg-[linear-gradient(90deg,#58d6be_0%,#8ae4d1_100%)]"></div>
             </div>
-            <div class="mt-3 text-base text-slate-500">Live opportunity from {sourceLabel(job.source)}</div>
+            <div class="mt-3 text-sm leading-6 text-slate-500">Live opportunity from {sourceLabel(job.source)}</div>
         </div>
     </div>
 
-    <div class:list={[isGrid ? "mt-7 flex items-end justify-between gap-4" : "flex flex-col items-end justify-between gap-4 lg:min-w-[15rem]"]}>
-        <div class="text-right">
+    <div class:list={[isGrid ? "mt-7 flex flex-col gap-4" : "flex flex-col items-end justify-between gap-4 lg:min-w-[15rem]"]}>
+        <div class:list={[isGrid ? "text-left" : "text-right"]}>
             {salary ? (
-                <div class="text-xl font-bold tracking-[-0.04em] text-slate-900">{salary}</div>
+                <div class:list={[
+                    "font-bold tracking-[-0.04em] text-slate-900 break-words",
+                    isGrid ? "text-lg" : "text-xl",
+                ]}>{salary}</div>
             ) : (
                 <div class="text-lg font-semibold tracking-[-0.04em] text-slate-500">Competitive pay</div>
             )}
-            <div class="mt-2 text-base text-slate-500">Posted {formatPostedDate(job.postedAt)}</div>
-            <div class="mt-1 text-base text-slate-500">{job.experienceLevel}</div>
+            <div class="mt-2 text-sm text-slate-500">Posted {formatPostedDate(job.postedAt)}</div>
+            <div class="mt-1 text-sm text-slate-500">{job.experienceLevel}</div>
         </div>
-        <div class="flex items-center gap-3 self-start lg:self-auto">
+        <div class:list={[isGrid ? "flex items-center gap-3" : "flex items-center gap-3 self-start lg:self-auto"]}>
             <SaveJobButton client:load jobId={job.id} initialSaved={job.isSaved} />
-            <a href={`/jobs/${job.id}`} class="jh-button px-6 py-4">View Job</a>
+            <a href={`/jobs/${job.id}`} class:list={["jh-button py-4", isGrid ? "flex-1 justify-center px-5" : "px-6"]}>View Job</a>
         </div>
     </div>
 </article>

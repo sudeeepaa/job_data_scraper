@@ -154,6 +154,21 @@ button {
   background: linear-gradient(90deg, transparent 0%, rgba(201, 207, 227, 0.95) 25%, rgba(201, 207, 227, 0.95) 75%, transparent 100%);
 }
 
+.jh-line-clamp-2,
+.jh-line-clamp-3 {
+  display: -webkit-box;
+  overflow: hidden;
+  -webkit-box-orient: vertical;
+}
+
+.jh-line-clamp-2 {
+  -webkit-line-clamp: 2;
+}
+
+.jh-line-clamp-3 {
+  -webkit-line-clamp: 3;
+}
+
 .animate-spin {
   animation: spin 1s linear infinite;
 }
