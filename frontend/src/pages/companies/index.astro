@@ -29,12 +29,10 @@ const filteredCompanies = industry ? companies.filter((company) => company.indus
     <section class="border-b border-slate-200 bg-[linear-gradient(180deg,#f3f6ff_0%,#fbfcff_100%)]">
         <div class="mx-auto max-w-[1180px] px-6 py-14">
             <h1 class="text-6xl font-extrabold tracking-[-0.07em] text-slate-900">Browse Companies</h1>
-            <form action="/companies" method="GET" class="jh-panel mt-10 grid gap-4 p-4 lg:grid-cols-[1.2fr_0.8fr_auto]">
+            <form action="/companies" method="GET" class="jh-panel mt-10 grid gap-4 p-4 lg:grid-cols-[1fr_auto]">
                 <input type="search" name="q" value={query} placeholder="Company title or keyword" class="rounded-[1.2rem] border border-transparent bg-white px-5 py-4 text-lg text-slate-900 outline-none" />
-                <input type="search" name="industry" value={industry} placeholder="Industry" class="rounded-[1.2rem] border border-transparent bg-white px-5 py-4 text-lg text-slate-900 outline-none" />
                 <button type="submit" class="jh-button justify-center px-7 py-4">Search</button>
             </form>
-            <p class="mt-5 text-base text-slate-400">Popular : Twitter, Microsoft, Apple, Facebook</p>
         </div>
     </section>
 

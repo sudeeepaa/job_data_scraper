@@ -26,6 +26,10 @@ type Config struct {
 	ScrapeBridgeToken   string
 	ScrapeBridgeSources []string
 
+	// Experimental built-in HTML scraping for public job search pages.
+	BuiltInScrapersEnabled bool
+	BuiltInScraperSources  []string
+
 	// Cache settings
 	CacheTTL time.Duration
 
@@ -53,6 +57,10 @@ func LoadConfig() *Config {
 		ScrapeBridgeToken: strings.TrimSpace(os.Getenv("SCRAPE_BRIDGE_TOKEN")),
 		ScrapeBridgeSources: splitCSV(
 			getEnv("SCRAPE_BRIDGE_SOURCES", "linkedin,indeed"),
+		),
+		BuiltInScrapersEnabled: parseBoolEnv("ENABLE_BUILTIN_SCRAPERS", false),
+		BuiltInScraperSources: splitCSV(
+			getEnv("BUILTIN_SCRAPER_SOURCES", "linkedin,indeed"),
 		),
 		CacheTTL:          24 * time.Hour,
 		LiveSyncQueries:   splitCSVEnv("LIVE_SYNC_QUERIES"),

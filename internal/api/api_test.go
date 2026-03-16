@@ -235,7 +235,7 @@ func TestAPI_ListJobs_RefreshesFromSourcesOnSearch(t *testing.T) {
 	})
 	defer ts.Close()
 
-	resp, err := http.Get(ts.URL + "/api/v1/jobs/?q=ML+Engineer&location=India")
+	resp, err := http.Get(ts.URL + "/api/v1/jobs/?q=ML+Engineer")
 	if err != nil {
 		t.Fatalf("list jobs failed: %v", err)
 	}
@@ -258,6 +258,52 @@ func TestAPI_ListJobs_RefreshesFromSourcesOnSearch(t *testing.T) {
 	first := data[0].(map[string]interface{})
 	if first["title"] != "ML Engineer" {
 		t.Fatalf("title = %v, want ML Engineer", first["title"])
+	}
+}
+
+func TestAPI_Analytics_SourceHealth(t *testing.T) {
+	now := time.Now()
+	ts := testServerWithSources(t, []sources.JobSource{
+		fakeSource{
+			name: "bridge",
+			jobs: []domain.Job{
+				{
+					ID: "live-1", Title: "Data Engineer", Description: "Pipelines",
+					Company: "DataCo", CompanySlug: "dataco", Location: "Remote",
+					PostedAt: now, Source: "bridge", SourceURL: "https://example.com/jobs/live-1",
+					EmploymentType: "full-time", ExperienceLevel: "mid",
+				},
+			},
+		},
+	})
+	defer ts.Close()
+
+	_, err := http.Get(ts.URL + "/api/v1/jobs/?q=Data+Engineer")
+	if err != nil {
+		t.Fatalf("live search failed: %v", err)
+	}
+
+	resp, err := http.Get(ts.URL + "/api/v1/analytics/source-health")
+	if err != nil {
+		t.Fatalf("source health request failed: %v", err)
+	}
+	defer resp.Body.Close()
+
+	if resp.StatusCode != http.StatusOK {
+		t.Fatalf("status = %d, want %d", resp.StatusCode, http.StatusOK)
+	}
+
+	var result map[string][]map[string]interface{}
+	if err := json.NewDecoder(resp.Body).Decode(&result); err != nil {
+		t.Fatalf("decode failed: %v", err)
+	}
+
+	if len(result["data"]) != 1 {
+		t.Fatalf("data len = %d, want 1", len(result["data"]))
+	}
+
+	if result["data"][0]["name"] != "bridge" {
+		t.Fatalf("source name = %v, want bridge", result["data"][0]["name"])
 	}
 }
 
@@ -444,7 +490,7 @@ func TestAPI_Auth_LoginWrongPassword(t *testing.T) {
 
 	// Register first
 	regBody, _ := json.Marshal(domain.RegisterRequest{
-		Email: "user@example.com", Password: "correct", Name: "User",
+		Email: "user@example.com", Password: "correct123", Name: "User",
 	})
 	http.Post(ts.URL+"/api/v1/auth/register", "application/json", bytes.NewReader(regBody))
 

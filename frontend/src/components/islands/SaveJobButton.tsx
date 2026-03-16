@@ -1,6 +1,5 @@
 import { useState } from "preact/hooks";
 import { saveJob, unsaveJob } from "../../lib/api";
-import { getToken, isLoggedIn } from "../../lib/auth";
 
 interface Props {
     jobId: string;
@@ -12,21 +11,20 @@ export default function SaveJobButton({ jobId, initialSaved = false }: Props) {
     const [loading, setLoading] = useState(false);
 
     const handleClick = async () => {
-        if (!isLoggedIn()) {
-            window.location.href = "/auth/login";
-            return;
-        }
-
-        const token = getToken()!;
         setLoading(true);
 
         try {
             if (saved) {
-                await unsaveJob(token, jobId);
+                await unsaveJob(jobId);
                 setSaved(false);
             } else {
-                await saveJob(token, jobId);
+                await saveJob(jobId);
                 setSaved(true);
+            }
+        } catch (error) {
+            const message = error instanceof Error ? error.message.toLowerCase() : "";
+            if (message.includes("unauthorized")) {
+                window.location.href = "/auth/login";
             }
         } finally {
             setLoading(false);

@@ -49,6 +49,14 @@ func (s *JobService) HasAggregator() bool {
 	return s.aggregator != nil
 }
 
+// GetSourceHealth returns the latest status for configured live sources.
+func (s *JobService) GetSourceHealth() []domain.SourceHealth {
+	if s.aggregator == nil {
+		return []domain.SourceHealth{}
+	}
+	return s.aggregator.SourceHealth()
+}
+
 // ListJobs returns filtered and paginated job listings.
 func (s *JobService) ListJobs(ctx context.Context, params domain.JobQueryParams, pag domain.Pagination) ([]domain.JobSummary, int, error) {
 	return s.jobRepo.ListJobs(ctx, params, pag)

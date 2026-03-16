@@ -30,6 +30,18 @@ type SourceDistribution struct {
 	Count  int    `json:"count"`
 }
 
+// SourceHealth provides the latest ingestion status for a configured source.
+type SourceHealth struct {
+	Name          string     `json:"name"`
+	Healthy       bool       `json:"healthy"`
+	ResultCount   int        `json:"resultCount"`
+	LastQuery     string     `json:"lastQuery,omitempty"`
+	LastError     string     `json:"lastError,omitempty"`
+	LastAttemptAt *time.Time `json:"lastAttemptAt,omitempty"`
+	LastSuccessAt *time.Time `json:"lastSuccessAt,omitempty"`
+	LastDuration  string     `json:"lastDuration,omitempty"`
+}
+
 // SalaryStats provides aggregate salary statistics across all jobs.
 type SalaryStats struct {
 	MinSalary       int `json:"minSalary" db:"min_salary"`

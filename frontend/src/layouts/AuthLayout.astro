@@ -7,10 +7,9 @@ interface Props {
     description?: string;
     headline: string;
     subheadline: string;
-    ctaLabel: string;
 }
 
-const { title, description, headline, subheadline, ctaLabel } = Astro.props;
+const { title, description, headline, subheadline } = Astro.props;
 ---
 
 <BaseLayout title={title} description={description}>
@@ -58,21 +57,8 @@ const { title, description, headline, subheadline, ctaLabel } = Astro.props;
                     <BrandMark />
                 </div>
                 <div class="mb-10">
-                    <div class="mb-6 inline-flex rounded-2xl bg-[var(--jh-soft)] p-1 text-sm font-semibold">
-                        <span class="rounded-[1rem] bg-white px-5 py-3 text-[var(--jh-primary)] shadow-sm">Job Seeker</span>
-                        <span class="px-5 py-3 text-slate-600">Company</span>
-                    </div>
                     <h1 class="mb-4 text-6xl font-extrabold tracking-[-0.07em] text-slate-900">{headline}</h1>
                     <p class="text-xl leading-9 text-slate-500">{subheadline}</p>
-                </div>
-
-                <div class="mb-8">
-                    <button class="jh-button-secondary w-full justify-center text-xl">{ctaLabel}</button>
-                    <div class="my-8 flex items-center gap-4 text-lg text-slate-400">
-                        <span class="h-px flex-1 bg-slate-200"></span>
-                        <span>Or continue with email</span>
-                        <span class="h-px flex-1 bg-slate-200"></span>
-                    </div>
                 </div>
                 <slot />
             </div>

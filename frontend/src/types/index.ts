@@ -94,6 +94,17 @@ export interface SourceDistribution {
     count: number;
 }
 
+export interface SourceHealth {
+    name: string;
+    healthy: boolean;
+    resultCount: number;
+    lastQuery?: string;
+    lastError?: string;
+    lastAttemptAt?: string;
+    lastSuccessAt?: string;
+    lastDuration?: string;
+}
+
 export interface SalaryStats {
     minSalary: number;
     maxSalary: number;
@@ -106,6 +117,11 @@ export interface SalaryStats {
 export interface AuthResponse {
     token: string;
     user: UserProfile;
+}
+
+export interface SessionResponse {
+    authenticated: boolean;
+    user?: UserProfile;
 }
 
 export interface UserProfile {

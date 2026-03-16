@@ -33,6 +33,7 @@ func NewRouter(cfg RouterConfig) *chi.Mux {
 	r.Use(chimiddleware.Logger)
 	r.Use(chimiddleware.Recoverer)
 	r.Use(chimiddleware.Compress(5))
+	r.Use(chimiddleware.StripSlashes)
 	r.Use(cors.Handler(cors.Options{
 		AllowedOrigins:   cfg.CORSOrigins,
 		AllowedMethods:   []string{"GET", "POST", "DELETE", "OPTIONS"},
@@ -57,6 +58,8 @@ func NewRouter(cfg RouterConfig) *chi.Mux {
 		r.Route("/auth", func(r chi.Router) {
 			r.Post("/register", cfg.AuthHandler.Register)
 			r.Post("/login", cfg.AuthHandler.Login)
+			r.Post("/logout", cfg.AuthHandler.Logout)
+			r.With(middleware.OptionalAuthMiddleware(cfg.JWTSecret)).Get("/session", cfg.AuthHandler.GetSession)
 		})
 
 		// Jobs (public, with optional auth for saved status)
@@ -78,6 +81,7 @@ func NewRouter(cfg RouterConfig) *chi.Mux {
 			r.Get("/summary", cfg.AnalyticsHandler.GetSummary)
 			r.Get("/trends", cfg.AnalyticsHandler.GetMarketTrends)
 			r.Get("/sources", cfg.AnalyticsHandler.GetSourceDistribution)
+			r.Get("/source-health", cfg.AnalyticsHandler.GetSourceHealth)
 			r.Get("/salary", cfg.AnalyticsHandler.GetSalaryStats)
 			r.Post("/refresh", cfg.AnalyticsHandler.RefreshTrends)
 		})

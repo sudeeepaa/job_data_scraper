@@ -60,14 +60,26 @@ func (h *JobHandler) ListJobs(w http.ResponseWriter, r *http.Request) {
 	// User-driven searches should pull fresh data before reading from the local DB.
 	// Use refresh=false to opt out when a caller explicitly wants cache-only results.
 	shouldRefresh := params.Query != "" && q.Get("refresh") != "false"
+	var refreshedJobs []domain.Job
 	if shouldRefresh {
-		_, _ = h.svc.RefreshJobs(r.Context(), params.Query, "", pag.Page)
+		refreshedJobs, _ = h.svc.RefreshJobs(r.Context(), params.Query, "", pag.Page)
 		// Errors from live fetch are non-fatal — we still return cached/stored data below.
 	}
 
 	jobs, total, err := h.svc.ListJobs(r.Context(), params, pag)
 	if err != nil {
 		writeError(w, http.StatusInternalServerError, "failed to list jobs")
+		return
+	}
+
+	if total == 0 && len(refreshedJobs) > 0 {
+		fallbackJobs := summarizeJobs(refreshedJobs, pag.Limit)
+		meta := domain.NewPaginationMeta(1, pag.Limit, len(refreshedJobs))
+		w.Header().Set("Cache-Control", "no-store")
+		writeJSON(w, http.StatusOK, map[string]interface{}{
+			"data":       fallbackJobs,
+			"pagination": meta,
+		})
 		return
 	}
 
@@ -78,6 +90,34 @@ func (h *JobHandler) ListJobs(w http.ResponseWriter, r *http.Request) {
 		"data":       jobs,
 		"pagination": meta,
 	})
+}
+
+func summarizeJobs(jobs []domain.Job, limit int) []domain.JobSummary {
+	if limit <= 0 || limit > len(jobs) {
+		limit = len(jobs)
+	}
+
+	result := make([]domain.JobSummary, 0, limit)
+	for _, job := range jobs[:limit] {
+		result = append(result, domain.JobSummary{
+			ID:              job.ID,
+			Title:           job.Title,
+			Company:         job.Company,
+			CompanySlug:     job.CompanySlug,
+			Location:        job.Location,
+			SalaryMin:       job.SalaryMin,
+			SalaryMax:       job.SalaryMax,
+			SalaryCurrency:  job.SalaryCurrency,
+			PostedAt:        job.PostedAt,
+			Source:          job.Source,
+			SourceURL:       job.SourceURL,
+			Skills:          job.Skills,
+			IsRemote:        job.IsRemote,
+			ExperienceLevel: job.ExperienceLevel,
+		})
+	}
+
+	return result
 }
 
 // GetJob returns a single job by ID.

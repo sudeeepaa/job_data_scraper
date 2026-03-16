@@ -21,19 +21,27 @@ type SavedJob struct {
 
 // RegisterRequest is the payload for user registration.
 type RegisterRequest struct {
-	Email    string `json:"email"`
-	Password string `json:"password"`
-	Name     string `json:"name"`
+	Email      string `json:"email"`
+	Password   string `json:"password"`
+	Name       string `json:"name"`
+	RememberMe bool   `json:"rememberMe"`
 }
 
 // LoginRequest is the payload for user login.
 type LoginRequest struct {
-	Email    string `json:"email"`
-	Password string `json:"password"`
+	Email      string `json:"email"`
+	Password   string `json:"password"`
+	RememberMe bool   `json:"rememberMe"`
 }
 
 // AuthResponse is returned after successful auth.
 type AuthResponse struct {
 	Token string `json:"token"`
 	User  User   `json:"user"`
+}
+
+// SessionResponse is returned when checking the current authenticated session.
+type SessionResponse struct {
+	Authenticated bool  `json:"authenticated"`
+	User          *User `json:"user,omitempty"`
 }

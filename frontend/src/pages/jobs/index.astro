@@ -2,7 +2,7 @@
 import PageLayout from "../../layouts/PageLayout.astro";
 import JobCard from "../../components/jobs/JobCard.astro";
 import Pagination from "../../components/common/Pagination.astro";
-import { fetchFilters, fetchJobs } from "../../lib/api";
+import { fetchFilters, fetchJobs, fetchSourceHealth } from "../../lib/api";
 
 const url = Astro.url;
 const query = url.searchParams.get("q") || "";
@@ -16,26 +16,32 @@ const view = url.searchParams.get("view") === "list" ? "list" : "grid";
 
 let jobsData = { data: [], pagination: { page: 1, limit: 20, totalItems: 0, totalPages: 0, hasMore: false } };
 let filtersData = { locations: [], experienceLevels: [], sources: [], skills: [] };
+let sourceHealth = [];
 let error = null;
 
 try {
-    const [jobsResponse, filtersResponse] = await Promise.all([
-        fetchJobs({
-            q: query,
-            page,
-            experience,
-            source,
-            employment_type: employmentType,
-            remote: remote || undefined,
-            sort,
-        }),
+    jobsData = await fetchJobs({
+        q: query,
+        page,
+        experience,
+        source,
+        employment_type: employmentType,
+        remote: remote || undefined,
+        sort,
+    });
+
+    const [filtersResponse, sourceHealthResponse] = await Promise.all([
         fetchFilters(),
+        fetchSourceHealth(),
     ]);
-    jobsData = jobsResponse;
     filtersData = filtersResponse;
+    sourceHealth = sourceHealthResponse.data || [];
 } catch (e) {
     error = e instanceof Error ? e.message : "Failed to load jobs";
 }
+
+const healthySources = sourceHealth.filter((item) => item.healthy);
+const failingSources = sourceHealth.filter((item) => !item.healthy && item.lastError);
 ---
 
 <PageLayout title={query ? `Find Jobs: ${query}` : "Find Jobs"} description="Browse roles using the JobHuntly job board experience.">
@@ -46,7 +52,6 @@ try {
                 <input type="search" name="q" value={query} placeholder="Job title or keyword" class="rounded-[1.2rem] border border-transparent bg-white px-5 py-4 text-lg text-slate-900 outline-none" />
                 <button type="submit" class="jh-button justify-center px-7 py-4">Search</button>
             </form>
-            <p class="mt-5 text-base text-slate-400">Popular : UI Designer, UX Researcher, Android, Admin</p>
         </div>
     </section>
 
@@ -132,6 +137,40 @@ try {
                     </div>
                 </div>
 
+                {query && sourceHealth.length > 0 && (
+                    <div class="mb-6 rounded-[1.45rem] border border-[var(--jh-border)] bg-white px-5 py-5 shadow-[0_16px_40px_rgba(37,47,94,0.05)]">
+                        <div class="flex flex-col gap-4 lg:flex-row lg:items-center lg:justify-between">
+                            <div>
+                                <p class="text-sm font-semibold uppercase tracking-[0.2em] text-slate-400">Live Search Status</p>
+                                <p class="mt-2 text-lg text-slate-600">
+                                    {healthySources.length > 0
+                                        ? `Fresh results were requested from ${healthySources.length} live source${healthySources.length > 1 ? "s" : ""}.`
+                                        : "No live source returned usable results for this role yet."}
+                                </p>
+                            </div>
+                            <div class="flex flex-wrap gap-3">
+                                {sourceHealth.map((item) => (
+                                    <div class:list={[
+                                        "rounded-full border px-4 py-2 text-sm font-semibold",
+                                        item.healthy
+                                            ? "border-[rgba(88,214,190,0.25)] bg-[rgba(88,214,190,0.12)] text-[var(--jh-mint)]"
+                                            : "border-[rgba(255,108,95,0.25)] bg-[rgba(255,108,95,0.08)] text-[var(--jh-coral)]",
+                                    ]}>
+                                        {item.name}: {item.healthy ? `${item.resultCount} jobs` : "issue detected"}
+                                    </div>
+                                ))}
+                            </div>
+                        </div>
+                        {failingSources.length > 0 && (
+                            <div class="mt-4 text-sm text-slate-500">
+                                {failingSources.map((item) => (
+                                    <p>{item.name}: {item.lastError}</p>
+                                ))}
+                            </div>
+                        )}
+                    </div>
+                )}
+
                 {error ? (
                     <div class="rounded-[1.5rem] border border-[rgba(255,108,95,0.28)] bg-[rgba(255,108,95,0.08)] p-6 text-lg font-medium text-[var(--jh-coral)]">
                         {error}
@@ -148,7 +187,7 @@ try {
                 ) : (
                     <div class="jh-card p-12 text-center">
                         <h3 class="text-3xl font-extrabold tracking-[-0.05em] text-slate-900">No jobs found</h3>
-                        <p class="mt-3 text-lg text-slate-500">Try adjusting your search or filters.</p>
+                        <p class="mt-3 text-lg text-slate-500">Try broadening your role title or clearing one of the filters.</p>
                     </div>
                 )}
             </div>

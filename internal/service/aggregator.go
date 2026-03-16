@@ -5,6 +5,7 @@ import (
 	"crypto/sha256"
 	"fmt"
 	"log"
+	"sort"
 	"strings"
 	"sync"
 	"time"
@@ -21,6 +22,8 @@ type Aggregator struct {
 	jobRepo   *repository.JobRepo
 	cacheRepo *repository.CacheRepo
 	cacheTTL  time.Duration
+	mu        sync.RWMutex
+	statuses  map[string]domain.SourceHealth
 }
 
 // NewAggregator creates a new aggregator.
@@ -30,14 +33,37 @@ func NewAggregator(srcs []sources.JobSource, jobRepo *repository.JobRepo, cacheR
 		jobRepo:   jobRepo,
 		cacheRepo: cacheRepo,
 		cacheTTL:  cacheTTL,
+		statuses:  make(map[string]domain.SourceHealth, len(srcs)),
 	}
 }
 
 // sourceResult holds results from a single source goroutine.
 type sourceResult struct {
-	source string
-	jobs   []domain.Job
-	err    error
+	source   string
+	jobs     []domain.Job
+	err      error
+	query    string
+	started  time.Time
+	finished time.Time
+}
+
+// SourceHealth returns the latest status for each configured source.
+func (a *Aggregator) SourceHealth() []domain.SourceHealth {
+	a.mu.RLock()
+	defer a.mu.RUnlock()
+
+	statuses := make([]domain.SourceHealth, 0, len(a.sources))
+	for _, src := range a.sources {
+		status := a.statuses[src.Name()]
+		status.Name = src.Name()
+		statuses = append(statuses, status)
+	}
+
+	sort.Slice(statuses, func(i, j int) bool {
+		return statuses[i].Name < statuses[j].Name
+	})
+
+	return statuses
 }
 
 // SearchAndStore fans out to all sources, deduplicates, and persists results.
@@ -88,15 +114,23 @@ func (a *Aggregator) SearchAndStore(ctx context.Context, query, location string,
 	results := make(chan sourceResult, len(a.sources))
 	var wg sync.WaitGroup
 
-	fetchCtx, cancel := context.WithTimeout(ctx, 20*time.Second)
+	fetchCtx, cancel := context.WithTimeout(ctx, 30*time.Second)
 	defer cancel()
 
 	for _, src := range a.sources {
 		wg.Add(1)
 		go func(s sources.JobSource) {
 			defer wg.Done()
+			started := time.Now()
 			jobs, err := s.Search(fetchCtx, query, location, page)
-			results <- sourceResult{source: s.Name(), jobs: jobs, err: err}
+			results <- sourceResult{
+				source:   s.Name(),
+				jobs:     jobs,
+				err:      err,
+				query:    query,
+				started:  started,
+				finished: time.Now(),
+			}
 		}(src)
 	}
 
@@ -110,6 +144,7 @@ func (a *Aggregator) SearchAndStore(ctx context.Context, query, location string,
 	var allJobs []domain.Job
 	var errors []string
 	for res := range results {
+		a.updateSourceHealth(res)
 		if res.err != nil {
 			log.Printf("⚠️  Source %q failed: %v", res.source, res.err)
 			errors = append(errors, fmt.Sprintf("%s: %v", res.source, res.err))
@@ -207,4 +242,31 @@ func buildCacheKey(query, location string, page int) string {
 	raw := fmt.Sprintf("search:%s:%s:%d", strings.ToLower(query), strings.ToLower(location), page)
 	h := sha256.Sum256([]byte(raw))
 	return fmt.Sprintf("%x", h[:8])
+}
+
+func (a *Aggregator) updateSourceHealth(res sourceResult) {
+	a.mu.Lock()
+	defer a.mu.Unlock()
+
+	status := a.statuses[res.source]
+	status.Name = res.source
+	status.LastQuery = res.query
+	status.ResultCount = len(res.jobs)
+	status.LastDuration = res.finished.Sub(res.started).Round(time.Millisecond).String()
+	status.LastAttemptAt = timePtr(res.finished)
+
+	if res.err != nil {
+		status.Healthy = false
+		status.LastError = res.err.Error()
+	} else {
+		status.Healthy = true
+		status.LastError = ""
+		status.LastSuccessAt = timePtr(res.finished)
+	}
+
+	a.statuses[res.source] = status
+}
+
+func timePtr(value time.Time) *time.Time {
+	return &value
 }

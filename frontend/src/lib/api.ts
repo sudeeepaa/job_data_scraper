@@ -7,6 +7,7 @@ const API_BASE = import.meta.env.SSR ? serverAPIBase : browserAPIBase;
 
 async function fetchAPI<T>(endpoint: string, options?: RequestInit): Promise<T> {
     const response = await fetch(`${API_BASE}${endpoint}`, {
+        ...(import.meta.env.SSR ? {} : { credentials: "include" as const }),
         ...options,
         headers: {
             "Content-Type": "application/json",
@@ -78,6 +79,10 @@ export async function fetchSourceDistribution() {
     return fetchAPI<{ data: import("../types").SourceDistribution[] }>("/api/v1/analytics/sources");
 }
 
+export async function fetchSourceHealth() {
+    return fetchAPI<{ data: import("../types").SourceHealth[] }>("/api/v1/analytics/source-health");
+}
+
 export async function fetchSalaryStats() {
     return fetchAPI<import("../types").SalaryStats>("/api/v1/analytics/salary");
 }
@@ -87,42 +92,46 @@ export async function refreshTrends() {
 }
 
 // Auth endpoints
-export async function register(email: string, password: string, name: string) {
+export async function register(email: string, password: string, name: string, rememberMe = true) {
     return fetchAPI<import("../types").AuthResponse>("/api/v1/auth/register", {
         method: "POST",
-        body: JSON.stringify({ email, password, name }),
+        body: JSON.stringify({ email, password, name, rememberMe }),
     });
 }
 
-export async function login(email: string, password: string) {
+export async function login(email: string, password: string, rememberMe = true) {
     return fetchAPI<import("../types").AuthResponse>("/api/v1/auth/login", {
         method: "POST",
-        body: JSON.stringify({ email, password }),
+        body: JSON.stringify({ email, password, rememberMe }),
     });
 }
 
-export async function fetchProfile(token: string) {
-    return fetchAPI<import("../types").UserProfile>("/api/v1/me/", {
-        headers: { Authorization: `Bearer ${token}` },
+export async function logout() {
+    return fetchAPI<{ message: string }>("/api/v1/auth/logout", {
+        method: "POST",
     });
 }
 
-export async function fetchSavedJobs(token: string) {
-    return fetchAPI<import("../types").SavedJobsResponse>("/api/v1/me/saved-jobs", {
-        headers: { Authorization: `Bearer ${token}` },
-    });
+export async function fetchSession() {
+    return fetchAPI<import("../types").SessionResponse>("/api/v1/auth/session");
 }
 
-export async function saveJob(token: string, jobId: string) {
+export async function fetchProfile() {
+    return fetchAPI<import("../types").UserProfile>("/api/v1/me");
+}
+
+export async function fetchSavedJobs() {
+    return fetchAPI<import("../types").SavedJobsResponse>("/api/v1/me/saved-jobs");
+}
+
+export async function saveJob(jobId: string) {
     return fetchAPI<{ message: string }>(`/api/v1/me/saved-jobs/${jobId}`, {
         method: "POST",
-        headers: { Authorization: `Bearer ${token}` },
     });
 }
 
-export async function unsaveJob(token: string, jobId: string) {
+export async function unsaveJob(jobId: string) {
     return fetchAPI<{ message: string }>(`/api/v1/me/saved-jobs/${jobId}`, {
         method: "DELETE",
-        headers: { Authorization: `Bearer ${token}` },
     });
 }

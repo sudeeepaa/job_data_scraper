@@ -2,6 +2,7 @@ package middleware
 
 import (
 	"context"
+	"encoding/json"
 	"net/http"
 	"strings"
 
@@ -11,14 +12,15 @@ import (
 type contextKey string
 
 const userIDKey contextKey = "userID"
+const SessionCookieName = "jobhuntly_session"
 
-// AuthMiddleware requires a valid JWT in the Authorization header.
+// AuthMiddleware requires a valid JWT in the Authorization header or session cookie.
 func AuthMiddleware(jwtSecret string) func(http.Handler) http.Handler {
 	return func(next http.Handler) http.Handler {
 		return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 			userID, ok := extractUserID(r, jwtSecret)
 			if !ok {
-				http.Error(w, `{"error":"unauthorized"}`, http.StatusUnauthorized)
+				writeUnauthorized(w)
 				return
 			}
 			ctx := context.WithValue(r.Context(), userIDKey, userID)
@@ -47,12 +49,10 @@ func GetUserIDFromContext(ctx context.Context) (string, bool) {
 }
 
 func extractUserID(r *http.Request, jwtSecret string) (string, bool) {
-	authHeader := r.Header.Get("Authorization")
-	if !strings.HasPrefix(authHeader, "Bearer ") {
+	tokenStr := extractToken(r)
+	if tokenStr == "" {
 		return "", false
 	}
-
-	tokenStr := strings.TrimPrefix(authHeader, "Bearer ")
 
 	token, err := jwt.Parse(tokenStr, func(token *jwt.Token) (interface{}, error) {
 		if _, ok := token.Method.(*jwt.SigningMethodHMAC); !ok {
@@ -71,4 +71,27 @@ func extractUserID(r *http.Request, jwtSecret string) (string, bool) {
 
 	userID, ok := claims["sub"].(string)
 	return userID, ok
+}
+
+func extractToken(r *http.Request) string {
+	authHeader := r.Header.Get("Authorization")
+	if strings.HasPrefix(authHeader, "Bearer ") {
+		return strings.TrimPrefix(authHeader, "Bearer ")
+	}
+
+	cookie, err := r.Cookie(SessionCookieName)
+	if err != nil || strings.TrimSpace(cookie.Value) == "" {
+		return ""
+	}
+
+	return strings.TrimSpace(cookie.Value)
+}
+
+func writeUnauthorized(w http.ResponseWriter) {
+	w.Header().Set("Content-Type", "application/json")
+	w.WriteHeader(http.StatusUnauthorized)
+	_ = json.NewEncoder(w).Encode(map[string]interface{}{
+		"error": "unauthorized",
+		"code":  http.StatusUnauthorized,
+	})
 }

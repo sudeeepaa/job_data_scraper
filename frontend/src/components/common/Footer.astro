@@ -16,35 +16,30 @@ const currentYear = new Date().getFullYear();
             <div>
                 <h3 class="text-[1.65rem] font-bold tracking-[-0.04em]">About</h3>
                 <ul class="mt-6 space-y-4 text-lg text-slate-300">
+                    <li><a href="/" class="hover:text-white">Home</a></li>
+                    <li><a href="/jobs" class="hover:text-white">Jobs</a></li>
                     <li><a href="/companies" class="hover:text-white">Companies</a></li>
-                    <li><a href="/jobs" class="hover:text-white">Pricing</a></li>
-                    <li><a href="/jobs" class="hover:text-white">Terms</a></li>
-                    <li><a href="/analytics" class="hover:text-white">Advice</a></li>
-                    <li><a href="/auth/register" class="hover:text-white">Privacy Policy</a></li>
+                    <li><a href="/analytics" class="hover:text-white">Insights</a></li>
                 </ul>
             </div>
             <div>
                 <h3 class="text-[1.65rem] font-bold tracking-[-0.04em]">Resources</h3>
                 <ul class="mt-6 space-y-4 text-lg text-slate-300">
-                    <li><a href="/analytics" class="hover:text-white">Help Docs</a></li>
-                    <li><a href="/jobs" class="hover:text-white">Guide</a></li>
-                    <li><a href="/analytics" class="hover:text-white">Updates</a></li>
-                    <li><a href="/companies" class="hover:text-white">Contact Us</a></li>
+                    <li><a href="/auth/login" class="hover:text-white">Sign in</a></li>
+                    <li><a href="/auth/register" class="hover:text-white">Create account</a></li>
+                    <li><a href="/auth/profile" class="hover:text-white">Saved jobs</a></li>
+                    <li><a href="/jobs" class="hover:text-white">Search roles</a></li>
                 </ul>
             </div>
             <div>
                 <h3 class="text-[1.65rem] font-bold tracking-[-0.04em]">Get job notifications</h3>
                 <p class="mt-6 text-lg leading-9 text-slate-300">
-                    The latest job news, articles, sent to your inbox weekly.
+                    Browse the latest openings and keep your shortlist moving without extra signup clutter.
                 </p>
-                <form class="mt-8 flex overflow-hidden rounded-[1.35rem] bg-white">
-                    <input
-                        type="email"
-                        placeholder="Email Address"
-                        class="min-w-0 flex-1 bg-transparent px-5 py-4 text-lg text-slate-900 outline-none"
-                    />
-                    <button type="submit" class="bg-[var(--jh-primary)] px-6 py-4 text-lg font-semibold text-white">Subscribe</button>
-                </form>
+                <div class="mt-8 flex gap-4">
+                    <a href="/jobs" class="jh-button">Browse jobs</a>
+                    <a href="/auth/register" class="jh-button-secondary">Create account</a>
+                </div>
             </div>
         </div>
 

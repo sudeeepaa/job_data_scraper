@@ -1,6 +1,5 @@
 import { useState } from "preact/hooks";
 import { login, register } from "../../lib/api";
-import { setToken } from "../../lib/auth";
 
 interface Props {
     mode: "register" | "login";
@@ -12,19 +11,48 @@ export default function AuthForm({ mode }: Props) {
     const [name, setName] = useState("");
     const [error, setError] = useState("");
     const [loading, setLoading] = useState(false);
+    const [rememberMe, setRememberMe] = useState(true);
+
+    const validate = () => {
+        const normalizedEmail = email.trim().toLowerCase();
+        const trimmedName = name.trim();
+        const passwordIsStrong = password.length >= 8 && /[A-Za-z]/.test(password) && /\d/.test(password);
+
+        if (mode === "register" && trimmedName.length < 2) {
+            return "Please enter your full name.";
+        }
+
+        if (!normalizedEmail) {
+            return "Please enter your email address.";
+        }
+
+        if (!passwordIsStrong) {
+            return "Password must be at least 8 characters and include letters and numbers.";
+        }
+
+        return "";
+    };
 
     const handleSubmit = async (e: Event) => {
         e.preventDefault();
         setError("");
+        const validationError = validate();
+        if (validationError) {
+            setError(validationError);
+            return;
+        }
         setLoading(true);
 
         try {
             const response =
                 mode === "register"
-                    ? await register(email, password, name)
-                    : await login(email, password);
+                    ? await register(email.trim().toLowerCase(), password, name.trim(), rememberMe)
+                    : await login(email.trim().toLowerCase(), password, rememberMe);
 
-            setToken(response.token);
+            if (!response.user?.id) {
+                throw new Error("Authentication succeeded, but the session was not created.");
+            }
+
             window.location.href = "/auth/profile";
         } catch (err) {
             setError(err instanceof Error ? err.message : "Something went wrong");
@@ -80,14 +108,20 @@ export default function AuthForm({ mode }: Props) {
                     value={password}
                     onInput={(e) => setPassword((e.target as HTMLInputElement).value)}
                     required
-                    minLength={6}
+                    minLength={8}
                     class="w-full rounded-[1.35rem] border border-[var(--jh-border)] bg-white px-5 py-4 text-lg text-slate-900 outline-none focus:border-[var(--jh-primary)]"
                     placeholder="Enter password"
                 />
+                <p class="mt-2 text-sm text-slate-400">Use at least 8 characters with letters and numbers.</p>
             </div>
 
             <label class="flex items-center gap-3 text-lg text-slate-600">
-                <input type="checkbox" defaultChecked class="h-5 w-5 rounded border-[var(--jh-border)] text-[var(--jh-primary)]" />
+                <input
+                    type="checkbox"
+                    checked={rememberMe}
+                    onInput={(e) => setRememberMe((e.target as HTMLInputElement).checked)}
+                    class="h-5 w-5 rounded border-[var(--jh-border)] text-[var(--jh-primary)]"
+                />
                 Remember me
             </label>
 

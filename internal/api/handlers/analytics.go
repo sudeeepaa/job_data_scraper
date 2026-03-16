@@ -100,3 +100,10 @@ func (h *AnalyticsHandler) RefreshTrends(w http.ResponseWriter, r *http.Request)
 
 	writeJSON(w, http.StatusOK, map[string]string{"message": "trends refreshed"})
 }
+
+// GetSourceHealth returns the latest health and fetch status for configured sources.
+func (h *AnalyticsHandler) GetSourceHealth(w http.ResponseWriter, r *http.Request) {
+	writeJSON(w, http.StatusOK, map[string]interface{}{
+		"data": h.svc.GetSourceHealth(),
+	})
+}

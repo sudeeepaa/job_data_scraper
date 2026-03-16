@@ -16,6 +16,7 @@ import (
 	"github.com/samuelshine/job-data-scraper/internal/sources/adzuna"
 	"github.com/samuelshine/job-data-scraper/internal/sources/jsearch"
 	"github.com/samuelshine/job-data-scraper/internal/sources/scrapebridge"
+	"github.com/samuelshine/job-data-scraper/internal/sources/webscrape"
 )
 
 func main() {
@@ -63,6 +64,20 @@ func main() {
 		log.Printf("✅ Scrape bridge source enabled for %v", cfg.ScrapeBridgeSources)
 	} else {
 		log.Printf("⚠️  SCRAPE_BRIDGE_URL not set — scrape bridge source disabled")
+	}
+
+	if cfg.BuiltInScrapersEnabled {
+		for _, provider := range cfg.BuiltInScraperSources {
+			source, err := webscrape.New(provider)
+			if err != nil {
+				log.Printf("⚠️  Built-in scraper %q disabled: %v", provider, err)
+				continue
+			}
+			srcs = append(srcs, source)
+			log.Printf("✅ Built-in scraper enabled for %s", provider)
+		}
+	} else {
+		log.Printf("⚠️  ENABLE_BUILTIN_SCRAPERS not set — built-in HTML scraping disabled")
 	}
 
 	// Build aggregator (nil if no sources)

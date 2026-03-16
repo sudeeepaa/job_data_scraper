@@ -28,9 +28,9 @@ func TestAuthService_RegisterAndLogin(t *testing.T) {
 
 	// Register
 	resp, err := auth.Register(ctx, domain.RegisterRequest{
-		Email:    "user@example.com",
+		Email:    "USER@example.com ",
 		Password: "password123",
-		Name:     "Test User",
+		Name:     " Test User ",
 	})
 	if err != nil {
 		t.Fatalf("Register failed: %v", err)
@@ -89,7 +89,7 @@ func TestAuthService_LoginWrongPassword(t *testing.T) {
 
 	// Register
 	auth.Register(ctx, domain.RegisterRequest{
-		Email: "user@example.com", Password: "correct", Name: "User",
+		Email: "user@example.com", Password: "correct123", Name: "User",
 	})
 
 	// Login with wrong password
@@ -109,7 +109,7 @@ func TestAuthService_LoginNonexistent(t *testing.T) {
 	ctx := context.Background()
 
 	_, err := auth.Login(ctx, domain.LoginRequest{
-		Email: "nobody@example.com", Password: "password",
+		Email: "nobody@example.com", Password: "password1",
 	})
 	if err == nil {
 		t.Error("expected error for nonexistent user")
@@ -137,6 +137,13 @@ func TestAuthService_Validation(t *testing.T) {
 	})
 	if err != ErrWeakPassword {
 		t.Errorf("weak password: error = %v, want ErrWeakPassword", err)
+	}
+
+	_, err = auth.Register(ctx, domain.RegisterRequest{
+		Email: "user@example.com", Password: "password123", Name: " ",
+	})
+	if err != ErrInvalidName {
+		t.Errorf("invalid name: error = %v, want ErrInvalidName", err)
 	}
 }
 

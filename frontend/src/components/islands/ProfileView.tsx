@@ -1,6 +1,5 @@
 import { useEffect, useState } from "preact/hooks";
-import { fetchProfile, fetchSavedJobs, unsaveJob } from "../../lib/api";
-import { clearToken, getToken, isLoggedIn } from "../../lib/auth";
+import { fetchProfile, fetchSavedJobs, fetchSession, logout, unsaveJob } from "../../lib/api";
 import { formatPostedDate, getInitials } from "../../lib/job-ui";
 import type { JobSummary, UserProfile } from "../../types";
 
@@ -11,43 +10,44 @@ export default function ProfileView() {
     const [error, setError] = useState("");
 
     useEffect(() => {
-        if (!isLoggedIn()) {
-            setLoading(false);
-            return;
-        }
+        fetchSession()
+            .then((session) => {
+                if (!session.authenticated) {
+                    return null;
+                }
 
-        const token = getToken()!;
-        Promise.all([fetchProfile(token), fetchSavedJobs(token)])
-            .then(([profileData, jobsData]) => {
+                return Promise.all([fetchProfile(), fetchSavedJobs()]);
+            })
+            .then((result) => {
+                if (!result) {
+                    return;
+                }
+
+                const [profileData, jobsData] = result;
                 setProfile(profileData);
                 setSavedJobs(jobsData.data || []);
             })
             .catch((err) => {
                 setError(err instanceof Error ? err.message : "Failed to load profile");
-                if (err instanceof Error && err.message.includes("401")) {
-                    clearToken();
-                }
             })
             .finally(() => setLoading(false));
     }, []);
 
     const handleUnsave = async (jobId: string) => {
-        const token = getToken();
-        if (!token) {
-            return;
-        }
-
         try {
-            await unsaveJob(token, jobId);
+            await unsaveJob(jobId);
             setSavedJobs((prev) => prev.filter((job) => job.id !== jobId));
         } catch {
             // Keep the current UI state if the request fails.
         }
     };
 
-    const handleLogout = () => {
-        clearToken();
-        window.location.href = "/";
+    const handleLogout = async () => {
+        try {
+            await logout();
+        } finally {
+            window.location.href = "/";
+        }
     };
 
     if (loading) {
@@ -58,7 +58,7 @@ export default function ProfileView() {
         );
     }
 
-    if (!isLoggedIn()) {
+    if (!profile && !error) {
         return (
             <div class="jh-card p-10 text-center">
                 <svg class="mx-auto mb-5 h-16 w-16 text-slate-300" fill="none" stroke="currentColor" viewBox="0 0 24 24">
