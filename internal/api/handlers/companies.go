@@ -51,9 +51,18 @@ func (h *CompanyHandler) GetCompany(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
+	skills, err := h.svc.GetCompanySkills(r.Context(), slug)
+	if err != nil {
+		skills = []string{}
+	}
+
+	// Update job count dynamically in the response
+	company.JobCount = len(jobs)
+
 	w.Header().Set("Cache-Control", "public, max-age=600")
 	writeJSON(w, http.StatusOK, map[string]interface{}{
-		"company": company,
-		"jobs":    jobs,
+		"company":    company,
+		"jobs":       jobs,
+		"realSkills": skills,
 	})
 }

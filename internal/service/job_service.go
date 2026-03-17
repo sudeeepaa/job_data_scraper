@@ -50,11 +50,19 @@ func (s *JobService) HasAggregator() bool {
 }
 
 // GetSourceHealth returns the latest status for configured live sources.
-func (s *JobService) GetSourceHealth() []domain.SourceHealth {
+func (s *JobService) GetSourceHealth(ctx context.Context) []domain.SourceHealth {
 	if s.aggregator == nil {
 		return []domain.SourceHealth{}
 	}
-	return s.aggregator.SourceHealth()
+	return s.aggregator.SourceHealth(ctx)
+}
+
+// ScrapeSource triggers a manual scrape for a single source.
+func (s *JobService) ScrapeSource(ctx context.Context, name string) ([]domain.Job, error) {
+	if s.aggregator == nil {
+		return nil, nil
+	}
+	return s.aggregator.ScrapeSource(ctx, name)
 }
 
 // ListJobs returns filtered and paginated job listings.
@@ -77,9 +85,40 @@ func (s *JobService) GetCompany(ctx context.Context, slug string) (*domain.Compa
 	return s.jobRepo.GetCompany(ctx, slug)
 }
 
-// GetCompanyJobs returns job summaries for a company.
+// GetCompanyJobs returns job summaries for a company, matching by slug or name.
 func (s *JobService) GetCompanyJobs(ctx context.Context, slug string) ([]domain.JobSummary, error) {
-	return s.jobRepo.GetCompanyJobs(ctx, slug)
+	company, _ := s.jobRepo.GetCompany(ctx, slug)
+	name := ""
+	if company != nil {
+		name = company.Name
+	}
+	return s.jobRepo.GetCompanyJobs(ctx, slug, name)
+}
+
+// GetCompanySkills aggregates all skills from a company's jobs.
+func (s *JobService) GetCompanySkills(ctx context.Context, slug string) ([]string, error) {
+	company, _ := s.jobRepo.GetCompany(ctx, slug)
+	name := ""
+	if company != nil {
+		name = company.Name
+	}
+	jobs, err := s.jobRepo.GetCompanyJobs(ctx, slug, name)
+	if err != nil {
+		return nil, err
+	}
+
+	skillMap := make(map[string]bool)
+	for _, j := range jobs {
+		for _, skill := range j.Skills {
+			skillMap[skill] = true
+		}
+	}
+
+	skills := make([]string, 0, len(skillMap))
+	for s := range skillMap {
+		skills = append(skills, s)
+	}
+	return skills, nil
 }
 
 // GetFilterOptions returns available filter values.

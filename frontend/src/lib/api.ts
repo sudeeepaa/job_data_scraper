@@ -135,3 +135,28 @@ export async function unsaveJob(jobId: string) {
         method: "DELETE",
     });
 }
+
+// Application Tracker endpoints
+export async function fetchApplications() {
+    return fetchAPI<{ data: import("../types").Application[] }>("/api/v1/me/applications");
+}
+
+export async function createApplication(data: any) {
+    return fetchAPI<import("../types").Application>("/api/v1/me/applications", {
+        method: "POST",
+        body: JSON.stringify(data),
+    });
+}
+
+export async function updateApplication(id: string, data: any) {
+    return fetchAPI<import("../types").Application>(`/api/v1/me/applications/${id}`, {
+        method: "PATCH",
+        body: JSON.stringify(data),
+    });
+}
+
+export async function deleteApplication(id: string) {
+    return fetchAPI<void>(`/api/v1/me/applications/${id}`, {
+        method: "DELETE",
+    });
+}

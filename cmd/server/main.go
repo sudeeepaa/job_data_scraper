@@ -17,6 +17,7 @@ import (
 	"github.com/samuelshine/job-data-scraper/internal/sources/jsearch"
 	"github.com/samuelshine/job-data-scraper/internal/sources/scrapebridge"
 	"github.com/samuelshine/job-data-scraper/internal/sources/webscrape"
+	"github.com/samuelshine/job-data-scraper/internal/scraper"
 )
 
 func main() {
@@ -41,6 +42,7 @@ func main() {
 	userRepo := repository.NewUserRepo(db)
 	cacheRepo := repository.NewCacheRepo(db)
 	trendsRepo := repository.NewTrendsRepo(db)
+	appRepo := repository.NewApplicationRepo(db)
 
 	// Build job source clients (conditional on API keys)
 	var srcs []sources.JobSource
@@ -80,6 +82,24 @@ func main() {
 		log.Printf("⚠️  ENABLE_BUILTIN_SCRAPERS not set — built-in HTML scraping disabled")
 	}
 
+	// Add new web scrapers
+	if !cfg.DisableHNScraper {
+		srcs = append(srcs, scraper.NewHNScraper())
+		log.Printf("✅ HN Scraper enabled")
+	}
+	if !cfg.DisableRemoteOKScraper {
+		srcs = append(srcs, scraper.NewRemoteOKScraper())
+		log.Printf("✅ RemoteOK Scraper enabled")
+	}
+	if !cfg.DisableWWRScraper {
+		srcs = append(srcs, scraper.NewWWRScraper())
+		log.Printf("✅ WWR Scraper enabled")
+	}
+	if !cfg.DisableJobicyScraper {
+		srcs = append(srcs, scraper.NewJobicyScraper())
+		log.Printf("✅ Jobicy Scraper enabled")
+	}
+
 	// Build aggregator (nil if no sources)
 	var aggregator *service.Aggregator
 	if len(srcs) > 0 {
@@ -92,6 +112,7 @@ func main() {
 	// Initialize services
 	jobService := service.NewJobService(jobRepo, userRepo, cacheRepo, trendsRepo, aggregator)
 	authService := service.NewAuthService(userRepo, cfg.JWTSecret)
+	appService := service.NewApplicationService(appRepo)
 
 	// Optionally keep the local database warm with periodic live syncs.
 	liveSync := service.NewLiveSyncWorker(jobService, cfg.LiveSyncQueries, cfg.LiveSyncLocations, cfg.LiveSyncInterval)
@@ -102,16 +123,18 @@ func main() {
 	companyHandler := handlers.NewCompanyHandler(jobService)
 	analyticsHandler := handlers.NewAnalyticsHandler(jobService)
 	authHandler := handlers.NewAuthHandler(authService, userRepo)
+	appHandler := handlers.NewApplicationHandler(appService)
 
 	// Create router
 	router := api.NewRouter(api.RouterConfig{
-		JobHandler:        jobHandler,
-		CompanyHandler:    companyHandler,
-		AnalyticsHandler:  analyticsHandler,
-		AuthHandler:       authHandler,
-		JWTSecret:         cfg.JWTSecret,
-		CORSOrigins:       cfg.CORSOrigins,
-		FrontendServerURL: cfg.FrontendServerURL,
+		JobHandler:         jobHandler,
+		CompanyHandler:     companyHandler,
+		AnalyticsHandler:   analyticsHandler,
+		AuthHandler:        authHandler,
+		ApplicationHandler: appHandler,
+		JWTSecret:          cfg.JWTSecret,
+		CORSOrigins:        cfg.CORSOrigins,
+		FrontendServerURL:  cfg.FrontendServerURL,
 	})
 
 	// Start server

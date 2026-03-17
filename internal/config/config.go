@@ -38,6 +38,12 @@ type Config struct {
 	LiveSyncLocations []string
 	LiveSyncInterval  time.Duration
 	LiveSyncOnStart   bool
+
+	// Scraper toggles (enabled by default)
+	DisableHNScraper       bool
+	DisableRemoteOKScraper bool
+	DisableWWRScraper      bool
+	DisableJobicyScraper   bool
 }
 
 // LoadConfig reads configuration from environment variables with defaults.
@@ -67,6 +73,11 @@ func LoadConfig() *Config {
 		LiveSyncLocations: splitCSVEnv("LIVE_SYNC_LOCATIONS"),
 		LiveSyncInterval:  parseDurationEnv("LIVE_SYNC_INTERVAL", 30*time.Minute),
 		LiveSyncOnStart:   parseBoolEnv("LIVE_SYNC_ON_START", true),
+
+		DisableHNScraper:       parseBoolEnv("DISABLE_HN_SCRAPER", false),
+		DisableRemoteOKScraper: parseBoolEnv("DISABLE_REMOTEOK_SCRAPER", false),
+		DisableWWRScraper:      parseBoolEnv("DISABLE_WWR_SCRAPER", false),
+		DisableJobicyScraper:   parseBoolEnv("DISABLE_JOBICY_SCRAPER", false),
 	}
 }
 

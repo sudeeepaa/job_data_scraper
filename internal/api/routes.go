@@ -16,13 +16,14 @@ import (
 
 // RouterConfig holds all dependencies needed for the router.
 type RouterConfig struct {
-	JobHandler        *handlers.JobHandler
-	CompanyHandler    *handlers.CompanyHandler
-	AnalyticsHandler  *handlers.AnalyticsHandler
-	AuthHandler       *handlers.AuthHandler
-	JWTSecret         string
-	CORSOrigins       []string
-	FrontendServerURL string
+	JobHandler         *handlers.JobHandler
+	CompanyHandler     *handlers.CompanyHandler
+	AnalyticsHandler   *handlers.AnalyticsHandler
+	AuthHandler        *handlers.AuthHandler
+	ApplicationHandler *handlers.ApplicationHandler
+	JWTSecret          string
+	CORSOrigins        []string
+	FrontendServerURL  string
 }
 
 // NewRouter creates the HTTP router with all routes.
@@ -96,6 +97,19 @@ func NewRouter(cfg RouterConfig) *chi.Mux {
 			r.Get("/saved-jobs", cfg.AuthHandler.GetSavedJobs)
 			r.Post("/saved-jobs/{id}", cfg.AuthHandler.SaveJob)
 			r.Delete("/saved-jobs/{id}", cfg.AuthHandler.UnsaveJob)
+
+			// Application Tracker
+			r.Route("/applications", func(r chi.Router) {
+				r.Get("/", cfg.ApplicationHandler.ListApplications)
+				r.Post("/", cfg.ApplicationHandler.CreateApplication)
+				r.Patch("/{id}", cfg.ApplicationHandler.UpdateApplication)
+				r.Delete("/{id}", cfg.ApplicationHandler.DeleteApplication)
+			})
+		})
+
+		// Admin/Scraper management
+		r.Route("/admin", func(r chi.Router) {
+			r.Post("/scrape/{source}", cfg.AnalyticsHandler.ScrapeSource)
 		})
 	})
 

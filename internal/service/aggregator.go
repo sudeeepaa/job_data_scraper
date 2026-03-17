@@ -48,7 +48,7 @@ type sourceResult struct {
 }
 
 // SourceHealth returns the latest status for each configured source.
-func (a *Aggregator) SourceHealth() []domain.SourceHealth {
+func (a *Aggregator) SourceHealth(ctx context.Context) []domain.SourceHealth {
 	a.mu.RLock()
 	defer a.mu.RUnlock()
 
@@ -56,6 +56,13 @@ func (a *Aggregator) SourceHealth() []domain.SourceHealth {
 	for _, src := range a.sources {
 		status := a.statuses[src.Name()]
 		status.Name = src.Name()
+		status.Enabled = true
+
+		// Fetch total yield from database for this source
+		if count, err := a.jobRepo.GetJobCountBySource(ctx, src.Name()); err == nil {
+			status.ResultCount = count
+		}
+
 		statuses = append(statuses, status)
 	}
 
@@ -200,6 +207,50 @@ func (a *Aggregator) SearchAndStore(ctx context.Context, query, location string,
 	}
 	if err := a.cacheRepo.SetCacheEntry(ctx, cacheEntry); err != nil {
 		log.Printf("⚠️  Failed to update cache entry: %v", err)
+	}
+
+	return deduped, nil
+}
+
+// ScrapeSource triggers a focused fetch for a specific named source.
+func (a *Aggregator) ScrapeSource(ctx context.Context, sourceName string) ([]domain.Job, error) {
+	a.mu.RLock()
+	var targeted sources.JobSource
+	for _, s := range a.sources {
+		if s.Name() == sourceName {
+			targeted = s
+			break
+		}
+	}
+	a.mu.RUnlock()
+
+	if targeted == nil {
+		return nil, fmt.Errorf("source %q not found or disabled", sourceName)
+	}
+
+	started := time.Now()
+	// Use a default query for manual refresh
+	query := "software"
+	location := "remote"
+	jobs, err := targeted.Search(ctx, query, location, 1)
+
+	a.updateSourceHealth(sourceResult{
+		source:   targeted.Name(),
+		jobs:     jobs,
+		err:      err,
+		query:    "manual_refresh",
+		started:  started,
+		finished: time.Now(),
+	})
+
+	if err != nil {
+		return nil, err
+	}
+
+	// Persist results
+	deduped := dedup(jobs)
+	if err := a.jobRepo.UpsertJobs(ctx, deduped); err != nil {
+		log.Printf("⚠️  ScrapeSource: failed to persist jobs: %v", err)
 	}
 
 	return deduped, nil

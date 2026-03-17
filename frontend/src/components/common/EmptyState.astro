@@ -1,0 +1,32 @@
+---
+interface Props {
+    title: string;
+    description: string;
+    icon?: string;
+    actionLabel?: string;
+    actionHref?: string;
+}
+
+const { 
+    title, 
+    description, 
+    icon = "🔍", 
+    actionLabel = "Browse All Jobs", 
+    actionHref = "/jobs" 
+} = Astro.props;
+---
+
+<div class="glass-card p-20 text-center animate-in">
+    <div class="inline-flex h-24 w-24 items-center justify-center rounded-3xl bg-[var(--jp-surface)] border border-[var(--jp-border)] text-5xl mb-8 shadow-2xl shadow-[var(--jp-accent)]/5">
+        {icon}
+    </div>
+    <h3 class="text-4xl font-bold tracking-tight mb-4">{title}</h3>
+    <p class="text-xl text-[var(--jp-text-muted)] max-w-md mx-auto mb-10 leading-relaxed font-medium">
+        {description}
+    </p>
+    {actionLabel && (
+        <a href={actionHref} class="btn-primary px-12 py-4 rounded-full text-lg shadow-xl shadow-[var(--jp-accent)]/10">
+            {actionLabel}
+        </a>
+    )}
+</div>

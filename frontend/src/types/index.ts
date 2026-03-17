@@ -58,6 +58,7 @@ export interface CompanyListResponse {
 export interface CompanyDetailResponse {
     company: Company;
     jobs: JobSummary[];
+    realSkills: string[];
 }
 
 export interface FilterOptions {
@@ -139,4 +140,19 @@ export interface SavedJobsResponse {
 export interface APIError {
     error: string;
     code: number;
+}
+
+export type ApplicationStatus = "wishlist" | "applied" | "interviewing" | "offered" | "rejected";
+
+export interface Application {
+    id: string;
+    userId: string;
+    jobId?: string;
+    title: string;
+    company: string;
+    status: ApplicationStatus;
+    notes: string;
+    appliedAt?: string;
+    createdAt: string;
+    updatedAt: string;
 }
