@@ -2,12 +2,13 @@
 import PageLayout from "../../layouts/PageLayout.astro";
 import JobCard from "../../components/jobs/JobCard.astro";
 import { fetchCompany } from "../../lib/api";
-import { getInitials } from "../../lib/job-ui";
+import { getInitials, sourceLabel } from "../../lib/job-ui";
 
 const { slug } = Astro.params;
 
 let company = null;
 let jobs = [];
+let realSkills = [];
 let error = null;
 
 try {
@@ -15,39 +16,55 @@ try {
         const response = await fetchCompany(slug);
         company = response.company;
         jobs = response.jobs;
+        realSkills = response.realSkills;
     }
 } catch (e) {
     error = e instanceof Error ? e.message : "Failed to load company";
 }
 
-const benefitItems = [
-    { title: "Full Healthcare", copy: "We believe in thriving communities and that starts with our team being happy and healthy." },
-    { title: "Unlimited Vacation", copy: "Flexible time away that makes space for family, wellness, and fun." },
-    { title: "Skill Development", copy: "We invest in learning, growth, and practical experience." },
-    { title: "Remote Working", copy: "Work where you do your best thinking and collaboration." },
-];
-
-const focusAreas = Array.from(new Set(jobs.flatMap((job) => job.skills))).slice(0, 6);
+// Clean up description if it's auto-generated
+let displayDescription = company?.description;
+if (displayDescription?.startsWith("Hiring on")) {
+    const source = displayDescription.replace("Hiring on ", "");
+    displayDescription = `This company is actively hiring on ${sourceLabel(source)}. Explore their current opportunities below.`;
+}
 ---
 
-<PageLayout title={company ? company.name : "Company Not Found"} description={company ? company.description : "Company detail page"}>
-    <section class="border-b border-slate-200 bg-[linear-gradient(180deg,#f3f6ff_0%,#fbfcff_100%)]">
+<PageLayout title={company ? company.name : "Company Not Found"} description={company ? (company.description || `View jobs at ${company.name}`) : "Company detail page"}>
+    <section class="border-b border-[var(--jp-border)] bg-[var(--jp-surface)]/30">
         <div class="mx-auto max-w-[1180px] px-6 py-12">
-            <a href="/companies" class="text-base font-semibold text-[var(--jh-primary)]">Home / Companies / {company?.name || "Unknown"}</a>
+            <nav class="flex items-center gap-2 text-sm font-bold uppercase tracking-widest text-[var(--jp-text-muted)]">
+                <a href="/" class="hover:text-[var(--jp-accent)] transition-colors">Home</a>
+                <span class="opacity-30">/</span>
+                <a href="/companies" class="hover:text-[var(--jp-accent)] transition-colors">Companies</a>
+                <span class="opacity-30">/</span>
+                <span class="text-[var(--jp-text-primary)]">{company?.name || "..." }</span>
+            </nav>
+            
             {company && (
-                <div class="mt-8 grid gap-6 lg:grid-cols-[auto_1fr] lg:items-center">
-                    <div class="flex h-32 w-32 items-center justify-center rounded-[2rem] bg-[linear-gradient(135deg,#e9ecff_0%,#635bff_100%)] text-5xl font-extrabold text-white">
-                        {getInitials(company.name)}
-                    </div>
-                    <div>
-                        <div class="flex flex-wrap items-center gap-4">
-                            <h1 class="text-6xl font-extrabold tracking-[-0.07em] text-slate-900">{company.name}</h1>
-                            <span class="rounded-[1rem] bg-[var(--jh-soft)] px-4 py-3 text-base font-semibold text-[var(--jh-primary)]">{company.jobCount} Jobs</span>
+                <div class="mt-10 flex flex-col gap-8 md:flex-row md:items-center md:justify-between animate-in">
+                    <div class="flex flex-col md:flex-row items-start md:items-center gap-8">
+                        <div 
+                            class="flex h-28 w-28 shrink-0 items-center justify-center rounded-[2rem] text-4xl font-bold text-white shadow-2xl"
+                            style={`background: linear-gradient(135deg, var(--jp-accent) 0%, var(--jp-accent-dark) 100%)`}
+                        >
+                            {getInitials(company.name)}
                         </div>
-                        <a href={company.website} target="_blank" rel="noreferrer" class="mt-4 inline-block text-xl font-semibold text-[var(--jh-primary)]">{company.website}</a>
-                        <div class="mt-6 flex flex-wrap gap-4 text-lg text-slate-600">
-                            <span class="jh-tag jh-tag-business">{company.industry}</span>
-                            <span class="jh-tag jh-tag-design">{company.jobCount} active roles</span>
+                        <div class="min-w-0">
+                            <div class="flex flex-wrap items-center gap-4 mb-2">
+                                <h1 class="text-4xl md:text-5xl font-bold tracking-tight text-[var(--jp-text-primary)]">{company.name}</h1>
+                                {company.industry && company.industry !== "Technology" && company.industry !== "Other" && (
+                                    <span class="chip active text-xs">{company.industry}</span>
+                                )}
+                            </div>
+                            <div class="flex flex-wrap items-center gap-6 text-[var(--jp-text-muted)] font-medium">
+                                {company.website && !company.website.includes("example.com") && !company.website.includes("placeholder") && (
+                                    <a href={company.website} target="_blank" rel="noreferrer" class="flex items-center gap-2 text-[var(--jp-accent)] hover:underline">
+                                        <span>🔗</span> {company.website.replace(/^https?:\/\//, '')}
+                                    </a>
+                                )}
+                                <span class="flex items-center gap-2">💼 {jobs.length} Active Roles</span>
+                            </div>
                         </div>
                     </div>
                 </div>
@@ -57,72 +74,55 @@ const focusAreas = Array.from(new Set(jobs.flatMap((job) => job.skills))).slice(
 
     <section class="mx-auto max-w-[1180px] px-6 py-14">
         {error ? (
-            <div class="rounded-[1.5rem] border border-[rgba(255,108,95,0.28)] bg-[rgba(255,108,95,0.08)] p-6 text-lg font-medium text-[var(--jh-coral)]">
-                {error}
+            <div class="glass-card p-10 text-center border-rose-500/30">
+                <p class="text-xl font-bold text-rose-400">{error}</p>
+                <a href="/companies" class="btn-primary mt-6">Back to Companies</a>
             </div>
         ) : company && (
-            <div class="grid gap-10 lg:grid-cols-[1.08fr_0.92fr]">
-                <div class="space-y-10">
-                    <div class="jh-card p-8">
-                        <h2 class="text-[2.5rem] font-extrabold tracking-[-0.06em] text-slate-900">Company Profile</h2>
-                        <p class="mt-5 text-xl leading-10 text-slate-600">{company.description}</p>
-                    </div>
-
-                    <div class="jh-card p-8">
-                        <h2 class="text-[2.2rem] font-extrabold tracking-[-0.06em] text-slate-900">Benefits</h2>
-                        <div class="mt-6 grid gap-6 sm:grid-cols-2">
-                            {benefitItems.map((benefit) => (
-                                <div class="rounded-[1.4rem] border border-[var(--jh-border)] p-5">
-                                    <div class="text-[1.45rem] font-bold tracking-[-0.04em] text-slate-900">{benefit.title}</div>
-                                    <p class="mt-3 text-lg leading-8 text-slate-500">{benefit.copy}</p>
-                                </div>
-                            ))}
+            <div class="grid gap-12 lg:grid-cols-[1fr_22rem]">
+                <div class="space-y-12">
+                    {displayDescription && !displayDescription.includes("Hiring on") && (
+                        <div class="glass-card p-8 md:p-10 rounded-3xl">
+                            <h2 class="text-2xl font-bold tracking-tight text-[var(--jp-text-primary)] mb-6">Company Profile</h2>
+                            <p class="text-lg leading-relaxed text-[var(--jp-text-muted)] font-medium">
+                                {displayDescription}
+                            </p>
                         </div>
-                    </div>
+                    )}
 
                     <div>
-                        <div class="mb-6 flex items-end justify-between gap-4">
-                            <h2 class="text-[2.3rem] font-extrabold tracking-[-0.06em] text-slate-900">Open Jobs</h2>
-                            <a href="/jobs" class="text-lg font-semibold text-[var(--jh-primary)]">Show all jobs →</a>
+                        <div class="mb-8 flex items-center justify-between">
+                            <h2 class="text-3xl font-bold tracking-tight text-[var(--jp-text-primary)]">
+                                Open <span class="text-[var(--jp-accent)]">Opportunities</span>
+                            </h2>
+                            <span class="text-sm font-bold text-[var(--jp-text-muted)] uppercase tracking-widest">{jobs.length} roles found</span>
                         </div>
-                        <div class="space-y-5">
-                            {jobs.map((job) => <JobCard job={job} mode="list" />)}
-                        </div>
+                        
+                        {jobs.length > 0 ? (
+                            <div class="space-y-6">
+                                {jobs.map((job, i) => <JobCard job={job} mode="list" index={i} />)}
+                            </div>
+                        ) : (
+                            <div class="glass-card p-20 text-center rounded-3xl">
+                                <p class="text-xl text-[var(--jp-text-muted)] mb-6">No active listings right now.</p>
+                                <a href="/jobs" class="btn-primary">Browse All Jobs</a>
+                            </div>
+                        )}
                     </div>
                 </div>
 
-                <div class="space-y-8">
-                    <div class="jh-card p-8">
-                        <h2 class="text-[2.1rem] font-extrabold tracking-[-0.06em] text-slate-900">Tech stack</h2>
-                        <div class="mt-6 flex flex-wrap gap-3">
-                            {focusAreas.length > 0 ? focusAreas.map((item, index) => (
-                                <span class:list={["jh-tag", index % 2 === 0 ? "jh-tag-business" : "jh-tag-design"]}>{item}</span>
-                            )) : <span class="text-lg text-slate-500">Focus areas will appear here as jobs gain richer skill data.</span>}
-                        </div>
-                    </div>
-
-                    <div class="jh-card p-8">
-                        <h2 class="text-[2.1rem] font-extrabold tracking-[-0.06em] text-slate-900">Contact</h2>
-                        <div class="mt-6 space-y-4 text-lg text-slate-600">
-                            <a href={company.website} target="_blank" rel="noreferrer" class="block rounded-[1.2rem] border border-[var(--jh-border)] px-5 py-4 font-semibold text-[var(--jh-primary)]">
-                                {company.website}
-                            </a>
-                            <div class="rounded-[1.2rem] bg-[var(--jh-soft)] px-5 py-4">
-                                {company.name} is currently hiring for {company.jobCount} role{company.jobCount === 1 ? "" : "s"}.
+                <aside class="space-y-8 lg:sticky lg:top-32 lg:self-start">
+                    {realSkills.length > 0 && (
+                        <div class="glass-card p-8 rounded-3xl">
+                            <h2 class="text-xl font-bold tracking-tight text-[var(--jp-text-primary)] mb-6">Tech Stack</h2>
+                            <div class="flex flex-wrap gap-2">
+                                {realSkills.sort().map((skill) => (
+                                    <span class="chip active text-xs">{skill}</span>
+                                ))}
                             </div>
                         </div>
-                    </div>
-
-                    <div class="jh-card overflow-hidden">
-                        <div class="grid grid-cols-2 gap-2 p-2">
-                            <div class="h-52 rounded-[1.3rem] bg-[linear-gradient(135deg,#f1ddcf_0%,#dcb89d_100%)]"></div>
-                            <div class="grid gap-2">
-                                <div class="h-[9.75rem] rounded-[1.3rem] bg-[linear-gradient(135deg,#f6f8ff_0%,#dbe2ff_100%)]"></div>
-                                <div class="h-[9.75rem] rounded-[1.3rem] bg-[linear-gradient(135deg,#e2f8f4_0%,#bef0e5_100%)]"></div>
-                            </div>
-                        </div>
-                    </div>
-                </div>
+                    )}
+                </aside>
             </div>
         )}
     </section>

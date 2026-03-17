@@ -9,11 +9,11 @@ const textClass = light ? "text-white" : "text-slate-900";
 ---
 
 <a href={href} class="inline-flex items-center gap-3">
-    <span class="relative flex h-10 w-10 items-center justify-center rounded-full bg-[linear-gradient(135deg,#7c5cff_0%,#4f46e5_100%)] shadow-[0_10px_24px_rgba(76,81,255,0.28)]">
-        <span class="absolute h-5 w-5 rounded-full border-[3px] border-white"></span>
-        <span class="absolute -right-0.5 -top-0.5 h-2.5 w-2.5 rounded-full bg-white"></span>
+    <span class="relative flex h-10 w-10 items-center justify-center rounded-full bg-[linear-gradient(135deg,var(--jp-accent)_0%,var(--jp-accent-dark)_100%)] shadow-[0_10px_24px_rgba(245,158,11,0.28)]">
+        <span class="absolute h-5 w-5 rounded-full border-[3px] border-[var(--jp-bg)]"></span>
+        <span class="absolute -right-0.5 -top-0.5 h-2.5 w-2.5 rounded-full bg-[var(--jp-bg)]"></span>
     </span>
-    <span class:list={["text-[1.85rem] font-extrabold tracking-[-0.04em]", textClass]}>
-        JobHuntly
+    <span class="text-[1.85rem] font-extrabold tracking-[-0.04em] text-[var(--jp-text-primary)]">
+        JobPulse
     </span>
 </a>

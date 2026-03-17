@@ -85,3 +85,24 @@ export function sourceLabel(source: string): string {
         .map((word) => word.charAt(0).toUpperCase() + word.slice(1))
         .join(" ");
 }
+
+export function getCompanyColor(name: string): string {
+    const colors = [
+        "#3B82F6", // blue
+        "#10B981", // emerald
+        "#F59E0B", // amber
+        "#EF4444", // red
+        "#8B5CF6", // violet
+        "#EC4899", // pink
+        "#06B6D4", // cyan
+        "#F97316", // orange
+    ];
+    
+    let hash = 0;
+    for (let i = 0; i < name.length; i++) {
+        hash = name.charCodeAt(i) + ((hash << 5) - hash);
+    }
+    
+    const index = Math.abs(hash) % colors.length;
+    return colors[index];
+}
