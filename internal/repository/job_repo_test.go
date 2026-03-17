@@ -320,8 +320,8 @@ func TestJobRepo_GetFilterOptions(t *testing.T) {
 	if len(opts.Locations) == 0 {
 		t.Error("expected locations")
 	}
-	if len(opts.ExperienceLevels) == 0 {
-		t.Error("expected experience levels")
+	if len(opts.ExperienceLevels) != 0 {
+		t.Errorf("expected 0 experience levels, got %d", len(opts.ExperienceLevels))
 	}
 	if len(opts.Sources) == 0 {
 		t.Error("expected sources")

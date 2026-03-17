@@ -40,6 +40,7 @@ type SourceHealth struct {
 	LastAttemptAt *time.Time `json:"lastAttemptAt,omitempty"`
 	LastSuccessAt *time.Time `json:"lastSuccessAt,omitempty"`
 	LastDuration  string     `json:"lastDuration,omitempty"`
+	Enabled       bool       `json:"enabled"`
 }
 
 // SalaryStats provides aggregate salary statistics across all jobs.

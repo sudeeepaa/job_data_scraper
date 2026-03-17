@@ -148,6 +148,12 @@ func (r *JobRepo) GetJob(ctx context.Context, id string) (*domain.Job, error) {
 
 // UpsertJob inserts or updates a job.
 func (r *JobRepo) UpsertJob(ctx context.Context, job *domain.Job) error {
+	tx, err := r.db.BeginTxx(ctx, nil)
+	if err != nil {
+		return fmt.Errorf("failed to begin transaction: %w", err)
+	}
+	defer tx.Rollback()
+
 	query := `
 		INSERT INTO jobs (id, external_id, title, description, company, company_slug, location,
 		                   salary_min, salary_max, salary_currency, posted_at, expires_at,
@@ -174,8 +180,21 @@ func (r *JobRepo) UpsertJob(ctx context.Context, job *domain.Job) error {
 		    experience_level = excluded.experience_level,
 		    updated_at = CURRENT_TIMESTAMP
 	`
-	_, err := r.db.NamedExecContext(ctx, query, job)
-	return err
+	if _, err := tx.NamedExecContext(ctx, query, job); err != nil {
+		return fmt.Errorf("failed to upsert job: %w", err)
+	}
+
+	// Auto-create company if it doesn't exist
+	companyQuery := `
+		INSERT OR IGNORE INTO companies (slug, name, description, logo_url)
+		VALUES (?, ?, ?, ?)
+	`
+	description := "Hiring on " + job.Source
+	if _, err := tx.ExecContext(ctx, companyQuery, job.CompanySlug, job.Company, description, ""); err != nil {
+		return fmt.Errorf("failed to auto-create company: %w", err)
+	}
+
+	return tx.Commit()
 }
 
 // UpsertJobs batch inserts or updates jobs in a transaction.
@@ -216,6 +235,16 @@ func (r *JobRepo) UpsertJobs(ctx context.Context, jobs []domain.Job) error {
 	for i := range jobs {
 		if _, err := tx.NamedExecContext(ctx, query, &jobs[i]); err != nil {
 			return fmt.Errorf("failed to upsert job %s: %w", jobs[i].ID, err)
+		}
+
+		// Auto-create company if it doesn't exist
+		companyQuery := `
+			INSERT OR IGNORE INTO companies (slug, name, description, logo_url)
+			VALUES (?, ?, ?, ?)
+		`
+		description := "Hiring on " + jobs[i].Source
+		if _, err := tx.ExecContext(ctx, companyQuery, jobs[i].CompanySlug, jobs[i].Company, description, ""); err != nil {
+			return fmt.Errorf("failed to auto-create company for job %s: %w", jobs[i].ID, err)
 		}
 	}
 
@@ -271,15 +300,17 @@ func (r *JobRepo) UpsertCompany(ctx context.Context, company *domain.Company) er
 	return err
 }
 
-// GetCompanyJobs returns job summaries for a specific company.
-func (r *JobRepo) GetCompanyJobs(ctx context.Context, slug string) ([]domain.JobSummary, error) {
+// GetCompanyJobs returns job summaries for a specific company, matching by slug or name.
+func (r *JobRepo) GetCompanyJobs(ctx context.Context, slug string, name string) ([]domain.JobSummary, error) {
 	var jobs []domain.JobSummary
 	err := r.db.SelectContext(ctx, &jobs, `
 		SELECT id, title, company, company_slug, location,
 		       salary_min, salary_max, salary_currency,
 		       posted_at, source, source_url, skills, is_remote, experience_level
-		FROM jobs WHERE company_slug = ? ORDER BY posted_at DESC
-	`, slug)
+		FROM jobs 
+		WHERE company_slug = ? OR LOWER(company) = LOWER(?)
+		ORDER BY posted_at DESC
+	`, slug, name)
 	if err != nil {
 		return nil, err
 	}
@@ -292,7 +323,7 @@ func (r *JobRepo) GetCompanyJobs(ctx context.Context, slug string) ([]domain.Job
 // GetFilterOptions returns available filter values aggregated from jobs.
 func (r *JobRepo) GetFilterOptions(ctx context.Context) (domain.FilterOptions, error) {
 	opts := domain.FilterOptions{
-		ExperienceLevels: []string{"entry", "mid", "senior", "lead"},
+		ExperienceLevels: []string{},
 	}
 
 	// Distinct locations
@@ -390,19 +421,36 @@ func (r *JobRepo) GetAnalyticsSummary(ctx context.Context) (domain.AnalyticsSumm
 	r.db.GetContext(ctx, &summary.TotalJobs, "SELECT COUNT(*) FROM jobs")
 	r.db.GetContext(ctx, &summary.TotalCompanies, "SELECT COUNT(*) FROM companies")
 
-	// Jobs posted today and this week
+	// Jobs posted today and this week (ensuring UTC comparison)
 	r.db.GetContext(ctx, &summary.JobsToday,
-		"SELECT COUNT(*) FROM jobs WHERE DATE(posted_at) = DATE('now')")
+		"SELECT COUNT(*) FROM jobs WHERE DATE(posted_at) = DATE('now', 'utc')")
 	r.db.GetContext(ctx, &summary.JobsThisWeek,
-		"SELECT COUNT(*) FROM jobs WHERE posted_at >= DATE('now', '-7 days')")
+		"SELECT COUNT(*) FROM jobs WHERE posted_at >= DATE('now', '-7 days', 'utc')")
 
 	// Remote jobs
 	r.db.GetContext(ctx, &summary.RemoteJobsCount,
 		"SELECT COUNT(*) FROM jobs WHERE is_remote = 1")
 
-	// Average salary
+	// Average salary (Only calculate from jobs with salary_min > 0 OR salary_max > 0)
+	// If the count of such jobs is too low, the frontend will handle the "Limited data" message,
+	// but the backend should provide the most accurate average possible.
 	r.db.GetContext(ctx, &summary.AverageSalary,
-		"SELECT COALESCE(AVG((COALESCE(salary_min,0) + COALESCE(salary_max,0)) / 2), 0) FROM jobs WHERE salary_min IS NOT NULL")
+		`SELECT COALESCE(AVG(
+			CASE 
+				WHEN salary_max > 0 THEN salary_max
+				WHEN salary_min > 0 THEN salary_min
+				ELSE NULL 
+			END
+		), 0)
+		FROM jobs 
+		WHERE salary_max > 0 OR salary_min > 0`)
 
 	return summary, nil
+}
+
+// GetJobCountBySource returns the total number of jobs currently in the database for a given source.
+func (r *JobRepo) GetJobCountBySource(ctx context.Context, source string) (int, error) {
+	var count int
+	err := r.db.GetContext(ctx, &count, "SELECT COUNT(*) FROM jobs WHERE source = ?", source)
+	return count, err
 }

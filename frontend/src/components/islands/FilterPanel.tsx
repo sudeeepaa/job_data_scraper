@@ -72,22 +72,6 @@ export default function FilterPanel({ filters, applied }: Props) {
                         </select>
                     </div>
 
-                    {/* Experience Level */}
-                    <div>
-                        <label class="block text-sm font-medium text-slate-700 dark:text-slate-300 mb-2">
-                            Experience
-                        </label>
-                        <select
-                            value={localFilters.experience || ''}
-                            onChange={(e) => updateFilter('experience', (e.target as HTMLSelectElement).value)}
-                            class="w-full px-3 py-2 bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-700 rounded-lg text-sm"
-                        >
-                            <option value="">All levels</option>
-                            {filters.experienceLevels.map(level => (
-                                <option key={level} value={level}>{level.charAt(0).toUpperCase() + level.slice(1)}</option>
-                            ))}
-                        </select>
-                    </div>
 
                     {/* Source */}
                     <div>

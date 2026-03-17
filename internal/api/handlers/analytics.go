@@ -1,10 +1,12 @@
 package handlers
 
 import (
+	"fmt"
 	"net/http"
 	"strconv"
 
 	"github.com/samuelshine/job-data-scraper/internal/service"
+	"github.com/go-chi/chi/v5"
 )
 
 // AnalyticsHandler handles HTTP requests for analytics endpoints.
@@ -104,6 +106,26 @@ func (h *AnalyticsHandler) RefreshTrends(w http.ResponseWriter, r *http.Request)
 // GetSourceHealth returns the latest health and fetch status for configured sources.
 func (h *AnalyticsHandler) GetSourceHealth(w http.ResponseWriter, r *http.Request) {
 	writeJSON(w, http.StatusOK, map[string]interface{}{
-		"data": h.svc.GetSourceHealth(),
+		"data": h.svc.GetSourceHealth(r.Context()),
+	})
+}
+
+// ScrapeSource triggers a manual fetch for a single source.
+func (h *AnalyticsHandler) ScrapeSource(w http.ResponseWriter, r *http.Request) {
+	name := chi.URLParam(r, "source")
+	if name == "" {
+		writeError(w, http.StatusBadRequest, "source name required")
+		return
+	}
+
+	jobs, err := h.svc.ScrapeSource(r.Context(), name)
+	if err != nil {
+		writeError(w, http.StatusInternalServerError, err.Error())
+		return
+	}
+
+	writeJSON(w, http.StatusOK, map[string]interface{}{
+		"message":   fmt.Sprintf("Successfully scraped %s", name),
+		"jobsFound": len(jobs),
 	})
 }
