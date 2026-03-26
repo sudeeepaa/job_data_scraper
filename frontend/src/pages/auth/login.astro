@@ -1,0 +1,13 @@
+---
+import AuthLayout from "../../layouts/AuthLayout.astro";
+import AuthForm from "../../components/islands/AuthForm";
+---
+
+<AuthLayout
+    title="Sign In"
+    description="Sign in to your JobHuntly account to manage your saved jobs and profile."
+    headline="Welcome Back, Dude"
+    subheadline="Pick up your search where you left it and keep your favorite roles close."
+>
+    <AuthForm client:load mode="login" />
+</AuthLayout>

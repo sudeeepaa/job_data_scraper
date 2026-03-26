@@ -1,0 +1,135 @@
+---
+import background from "../assets/background.svg";
+import PageLayout from "../layouts/PageLayout.astro";
+import JobCard from "../components/jobs/JobCard.astro";
+import SearchBar from "../components/common/SearchBar.astro";
+import { fetchAnalyticsSummary, fetchCompanies, fetchJobs, fetchFilters, fetchTopSkills } from "../lib/api";
+
+let featuredJobs = [];
+let latestJobs = [];
+let companies = [];
+let summary = null;
+let filters = { sources: [] };
+let topSkills = [];
+
+try {
+    const [jobsResponse, companiesResponse, summaryResponse, filtersResponse, skillsResponse] = await Promise.all([
+        fetchJobs({ limit: 8 }),
+        fetchCompanies(),
+        fetchAnalyticsSummary(),
+        fetchFilters(),
+        fetchTopSkills(8)
+    ]);
+
+    if (jobsResponse.data.length > 0) {
+        featuredJobs = jobsResponse.data.slice(0, 8);
+        latestJobs = jobsResponse.data.slice(0, 6);
+    }
+    if (companiesResponse.data.length > 0) {
+        companies = companiesResponse.data.slice(0, 5);
+    }
+    summary = summaryResponse;
+    filters = filtersResponse;
+    topSkills = skillsResponse.data || [];
+} catch {
+    // Keep a polished fallback landing page even when the API is unavailable.
+}
+
+const categoryCards = topSkills.map((skill, index) => ({
+    title: skill.name,
+    count: skill.count,
+    accent: index === 0, // Highlight the top one
+}));
+
+const partnerLogos = companies.map((company) => company.name);
+const heroJobs = featuredJobs.slice(0, 4);
+---
+
+<PageLayout
+    title="Discover Jobs"
+    description="JobPulse helps people discover great jobs, explore standout companies, and move through their next career step with confidence."
+>
+    <section class="relative min-h-[85vh] flex items-center overflow-hidden border-b border-[var(--jp-border)]">
+        <div class="pointer-events-none absolute inset-0">
+            <div class="absolute -left-28 top-16 h-[40rem] w-[40rem] rounded-full bg-[rgba(245,158,11,0.05)] blur-[120px]"></div>
+            <div class="absolute right-[-10rem] top-[-10rem] h-[50rem] w-[50rem] rounded-full bg-[rgba(245,158,11,0.03)] blur-[150px]"></div>
+        </div>
+
+        <div class="relative mx-auto max-w-[1240px] w-full px-6 py-20">
+            <div class="text-center mb-16 animate-in stagger-1">
+                <h1 class="text-6xl md:text-8xl font-bold tracking-tighter mb-8 max-w-4xl mx-auto leading-[0.9]">
+                    Discover your <span class="text-[var(--jp-accent)]">next big move</span> 
+                    in tech.
+                </h1>
+                <p class="text-xl md:text-2xl text-[var(--jp-text-muted)] max-w-2xl mx-auto mb-12">
+                    Premium job board for the modern workforce. 
+                    Search across your dream roles today.
+                </p>
+                
+                <SearchBar centered sources={filters.sources} />
+            </div>
+        </div>
+    </section>
+
+    <section class="mx-auto max-w-[1240px] px-6 py-10 sm:py-20">
+        <p class="mb-10 text-sm uppercase tracking-[0.3em] text-[var(--jp-text-muted)] font-bold text-center">Companies with active openings</p>
+        <div class="flex flex-wrap justify-center items-center gap-12 md:gap-20 opacity-40 grayscale pointer-events-none">
+            {partnerLogos.map((company) => <div class="text-3xl md:text-5xl font-bold tracking-tighter">{company}</div>)}
+        </div>
+    </section>
+
+    <section class="mx-auto max-w-[1240px] px-6 py-20 sm:py-32">
+        <div class="mb-12 flex flex-col gap-6 md:flex-row md:items-end md:justify-between animate-in stagger-2">
+            <div>
+                <h2 class="text-5xl md:text-7xl font-bold tracking-tighter mb-4">
+                    Explore by <span class="text-[var(--jp-accent)]">category</span>
+                </h2>
+                <p class="text-xl text-[var(--jp-text-muted)] max-w-2xl">Browse the spaces where tech companies are hiring most aggressively.</p>
+            </div>
+            <a href="/jobs" class="group text-lg font-bold text-[var(--jp-accent)] flex items-center gap-2">
+                Show all jobs 
+                <span class="transition-transform group-hover:translate-x-1">→</span>
+            </a>
+        </div>
+
+        <div class="grid gap-6 sm:grid-cols-2 lg:grid-cols-4">
+            {categoryCards.map((category) => (
+                <a
+                    href={`/jobs?q=${encodeURIComponent(category.title)}`}
+                    class:list={[
+                        "glass-card p-8 group",
+                        category.accent ? "border-[var(--jp-accent)]/30" : "",
+                    ]}
+                >
+                    <div class:list={["flex h-14 w-14 items-center justify-center rounded-2xl border text-2xl font-bold mb-10 transition-all group-hover:scale-110 group-hover:shadow-[0_0_20px_-5px_rgba(245,158,11,0.5)]", category.accent ? "border-[var(--jp-accent)] bg-[var(--jp-accent)]/10 text-[var(--jp-accent)]" : "border-[var(--jp-border)] bg-[var(--jp-surface)] text-[var(--jp-text-muted)] group-hover:text-[var(--jp-accent)] group-hover:border-[var(--jp-accent)]"]}>
+                        {category.title.slice(0, 1)}
+                    </div>
+                    <h3 class="text-3xl font-bold tracking-tight mb-2">{category.title}</h3>
+                    <div class="text-lg text-[var(--jp-text-muted)] mb-8">{category.count} jobs available</div>
+                    <div class="text-base font-bold text-[var(--jp-accent)] opacity-0 group-hover:opacity-100 transition-opacity flex items-center gap-2">
+                        Explore <span>→</span>
+                    </div>
+                </a>
+            ))}
+        </div>
+    </section>
+
+    <section class="mx-auto max-w-[1240px] px-6 py-20 pb-40">
+        <div class="mb-12 flex flex-col gap-6 md:flex-row md:items-end md:justify-between animate-in stagger-3">
+            <div>
+                <h2 class="text-5xl md:text-7xl font-bold tracking-tighter mb-4">
+                    Featured <span class="text-[var(--jp-accent)]">opportunities</span>
+                </h2>
+                <p class="text-xl text-[var(--jp-text-muted)] max-w-2xl">Hand-picked roles from top-tier tech companies available right now.</p>
+            </div>
+            <a href="/jobs" class="group text-lg font-bold text-[var(--jp-accent)] flex items-center gap-2">
+                Show all jobs 
+                <span class="transition-transform group-hover:translate-x-1">→</span>
+            </a>
+        </div>
+
+        <div class="grid gap-8 md:grid-cols-2 lg:grid-cols-4">
+            {featuredJobs.slice(0, 8).map((job, i) => <JobCard job={job} mode="grid" index={i} />)}
+        </div>
+    </section>
+</PageLayout>

@@ -1,0 +1,254 @@
+---
+import PageLayout from "../../layouts/PageLayout.astro";
+import JobCard from "../../components/jobs/JobCard.astro";
+import SaveJobButton from "../../components/islands/SaveJobButton";
+import SalaryInsights from "../../components/islands/SalaryInsights";
+import { fetchCompany, fetchJob } from "../../lib/api";
+import { formatAbsoluteDate, formatSalaryRange, getInitials, sourceLabel, getCompanyColor } from "../../lib/job-ui";
+
+const { id } = Astro.params;
+
+let job = null;
+let similarJobs = [];
+let company = null;
+let error = null;
+
+try {
+    if (id) {
+        job = await fetchJob(id);
+        if (job?.companySlug) {
+            try {
+                const companyResponse = await fetchCompany(job.companySlug);
+                company = companyResponse.company;
+                similarJobs = companyResponse.jobs.filter((item) => item.id !== job.id).slice(0, 4);
+            } catch (e) {
+                // Gracefully ignore company fetch errors for scraped jobs
+                console.warn(`Company ${job.companySlug} not found in database`);
+            }
+        }
+    }
+} catch (e) {
+    error = e instanceof Error ? e.message : "Failed to load job";
+}
+
+const salary = job ? formatSalaryRange(job) : null;
+
+// Only perform complex parsing if it's not HTML and not HN
+const descriptionSections = job && job.source !== 'hn_hiring' && !job.description.includes('<')
+    ? job.description
+          .split(/\n\s*\n/)
+          .map((block) => block.trim())
+          .filter(Boolean)
+          .map((block) => {
+              const lines = block
+                  .split("\n")
+                  .map((line) => line.trim())
+                  .filter(Boolean);
+
+              const bulletLines = lines
+                  .filter((line) => /^[-*•]/.test(line))
+                  .map((line) => line.replace(/^[-*•]\s*/, "").trim())
+                  .filter(Boolean);
+
+              if (bulletLines.length >= 2 && bulletLines.length === lines.length) {
+                  return { kind: "list", items: bulletLines };
+              }
+
+              return { kind: "paragraph", text: lines.join(" ") };
+          })
+    : [];
+---
+
+<PageLayout title={job ? `${job.title} at ${job.company}` : "Job Not Found"} description={job ? job.description : "Job detail page"}>
+    <section class="border-b border-[var(--jp-border)]">
+        <div class="mx-auto max-w-[1240px] px-6 py-12">
+            <a href="/jobs" class="group text-sm font-bold uppercase tracking-widest text-[var(--jp-text-muted)] flex items-center gap-2 hover:text-[var(--jp-accent)] transition-colors">
+                <span class="transition-transform group-hover:-translate-x-1">←</span> Back to jobs
+            </a>
+            
+            {job && (
+                <div class="glass-card mt-10 flex flex-col gap-8 p-8 md:p-12 lg:flex-row lg:items-center lg:justify-between animate-in">
+                    <div class="flex flex-col md:flex-row items-start md:items-center gap-8">
+                        <div 
+                            class="flex h-24 w-24 shrink-0 items-center justify-center rounded-[2rem] text-4xl font-bold text-white shadow-2xl"
+                            style={`background: ${getCompanyColor(job.company)}`}
+                        >
+                            {getInitials(job.company)}
+                        </div>
+                        <div class="min-w-0">
+                            <h1 class="text-4xl md:text-5xl font-bold tracking-tighter mb-4 leading-tight">{job.title}</h1>
+                            <div class="flex flex-wrap items-center gap-x-6 gap-y-3 text-lg font-medium text-[var(--jp-text-muted)]">
+                                <span class="flex items-center gap-2">🏢 {job.company}</span>
+                                <span class="flex items-center gap-2">📍 {job.location}</span>
+                                <span class="flex items-center gap-2">🕒 {job.employmentType}</span>
+                            </div>
+                            <div class="mt-6 flex flex-wrap gap-2">
+                                <span class="chip active">{job.skills[0] || job.experienceLevel}</span>
+                                <span class="chip">{sourceLabel(job.source)}</span>
+                                {job.isRemote && <span class="chip border-emerald-500/30 text-emerald-400">Remote</span>}
+                            </div>
+                        </div>
+                    </div>
+                    <div class="flex shrink-0 flex-wrap items-center gap-4">
+                        <SaveJobButton client:load jobId={job.id} initialSaved={job.isSaved} />
+                        {job.sourceUrl && (
+                            <div class="flex flex-col items-center gap-2">
+                                <a 
+                                    href={job.sourceUrl} 
+                                    target="_blank" 
+                                    rel="noreferrer" 
+                                    class="btn-primary px-12 py-4 rounded-full text-lg shadow-lg shadow-[var(--jp-accent)]/10"
+                                >
+                                    Apply Now
+                                </a>
+                                {job.source === "adzuna" && (
+                                    <span class="text-[10px] text-amber-400/70 font-bold uppercase tracking-tighter">Region Lock Warning</span>
+                                )}
+                            </div>
+                        )}
+                        {!job.sourceUrl && (
+                            <span class="text-sm font-bold text-rose-400">Application link unavailable</span>
+                        )}
+                    </div>
+                </div>
+            )}
+        </div>
+    </section>
+
+    <section class="mx-auto max-w-[1240px] px-6 py-14">
+        {error ? (
+            <div class="glass-card p-10 text-center border-rose-500/30">
+                <p class="text-xl font-bold text-rose-400">{error}</p>
+            </div>
+        ) : job && (
+            <>
+                <div class="grid gap-12 lg:grid-cols-[1fr_22rem]">
+                    <div class="space-y-10">
+                        <div class="glass-card p-8 md:p-10">
+                            <h2 class="text-3xl font-bold tracking-tight mb-8">Job Overview</h2>
+                            <div class="prose prose-invert max-w-none space-y-6">
+                                {job.source === 'hn_hiring' ? (
+                                    <pre class="bg-black/20 p-6 rounded-xl font-mono text-base overflow-x-auto whitespace-pre-wrap leading-relaxed opacity-90 border border-[var(--jp-border)]">
+                                        {job.description}
+                                    </pre>
+                                ) : job.description && job.description.indexOf('<') !== -1 ? (
+                                    <div class="text-lg text-[var(--jp-text-primary)] font-medium leading-relaxed opacity-90" set:html={job.description} />
+                                ) : (
+                                    descriptionSections.length > 0 ? (
+                                        descriptionSections.map((section) => (
+                                            section.kind === "list" ? (
+                                                <ul class="space-y-4 list-none p-0">
+                                                    {section.items.map((item) => (
+                                                        <li class="flex gap-4 text-lg text-[var(--jp-text-primary)] font-medium leading-relaxed">
+                                                            <span class="text-[var(--jp-accent)] shrink-0 mt-1">✦</span>
+                                                            <span>{item}</span>
+                                                        </li>
+                                                    ))}
+                                                </ul>
+                                            ) : (
+                                                <p class="text-lg text-[var(--jp-text-primary)] font-medium leading-relaxed opacity-90">{section.text}</p>
+                                            )
+                                        ))
+                                    ) : (
+                                        <p class="text-lg text-[var(--jp-text-primary)] font-medium leading-relaxed opacity-90 whitespace-pre-wrap">
+                                            {job.description || `Full job details available on ${sourceLabel(job.source)}`}
+                                        </p>
+                                    )
+                                )}
+
+                                {(!job.description || job.description.trim() === "") && (
+                                    <div class="mt-8 pt-8 border-t border-[var(--jp-border)] flex flex-col items-center text-center">
+                                        <p class="text-lg text-[var(--jp-text-muted)] font-medium mb-6">Full job details and application instructions are available on the source website.</p>
+                                        <a href={job.sourceUrl} target="_blank" rel="noreferrer" class="btn-primary px-8">
+                                            View Original Posting on {sourceLabel(job.source)}
+                                        </a>
+                                    </div>
+                                )}
+
+                                {job.source === 'adzuna' && (
+                                    <div class="mt-8 p-4 rounded-xl bg-amber-500/5 border border-amber-500/20 text-amber-200/80 text-sm">
+                                        <p class="font-bold mb-1">⚠️ Region Notice (Adzuna US)</p>
+                                        This job is listed via Adzuna's US region. The position may not be directly available for applications from your current location (India).
+                                    </div>
+                                )}
+                            </div>
+                        </div>
+                    </div>
+
+                    <aside class="space-y-8 lg:sticky lg:top-32 lg:self-start">
+                        <div class="glass-card p-8">
+                            <h2 class="text-xl font-bold tracking-tight mb-6">About this role</h2>
+                            <div class="space-y-6">
+                                <div class="flex items-center justify-between">
+                                    <span class="text-sm font-bold text-[var(--jp-text-muted)] uppercase">Apply By</span>
+                                    <span class="text-sm font-bold">{job.expiresAt ? formatAbsoluteDate(job.expiresAt) : "Open"}</span>
+                                </div>
+                                <div class="flex items-center justify-between">
+                                    <span class="text-sm font-bold text-[var(--jp-text-muted)] uppercase">Posted</span>
+                                    <span class="text-sm font-bold">{formatAbsoluteDate(job.postedAt)}</span>
+                                </div>
+                                <div class="flex items-center justify-between">
+                                    <span class="text-sm font-bold text-[var(--jp-text-muted)] uppercase">Salary</span>
+                                    <span class="text-sm font-bold text-[var(--jp-accent)]">{salary || "Competitive"}</span>
+                                </div>
+                                <div class="flex items-center justify-between">
+                                    <span class="text-sm font-bold text-[var(--jp-text-muted)] uppercase">Source</span>
+                                    <span class="text-sm font-bold">{sourceLabel(job.source)}</span>
+                                </div>
+                            </div>
+                        </div>
+
+                        <div class="glass-card p-8">
+                            <h2 class="text-xl font-bold tracking-tight mb-6">Core Skills</h2>
+                            <div class="flex flex-wrap gap-2">
+                                {job.skills.length > 0 ? job.skills.map((skill) => (
+                                    <span class="chip active text-xs">{skill}</span>
+                                )) : (
+                                    <span class="text-sm text-[var(--jp-text-muted)] italic">No specific skills listed.</span>
+                                )}
+                            </div>
+                        </div>
+
+                        {company && (
+                            <div class="glass-card p-8 group">
+                                <div class="flex items-center gap-4 mb-6">
+                                    <div 
+                                        class="flex h-16 w-16 shrink-0 items-center justify-center rounded-2xl text-2xl font-bold text-white shadow-lg"
+                                        style={`background: ${getCompanyColor(company.name)}`}
+                                    >
+                                        {getInitials(company.name)}
+                                    </div>
+                                    <div>
+                                        <h3 class="text-xl font-bold tracking-tight">{company.name}</h3>
+                                        <a href={`/companies/${company.slug}`} class="text-sm font-bold text-[var(--jp-accent)] hover:underline">
+                                            View Profile →
+                                        </a>
+                                    </div>
+                                </div>
+                                <p class="text-sm text-[var(--jp-text-muted)] font-medium leading-relaxed line-clamp-4">
+                                    {company.description}
+                                </p>
+                            </div>
+                        )}
+                    </aside>
+                </div>
+
+                {similarJobs.length > 0 && (
+                    <div class="mt-24 pt-20 border-t border-[var(--jp-border)]">
+                        <div class="mb-12 flex items-center justify-between">
+                            <h2 class="text-4xl font-bold tracking-tighter">
+                                Similar <span class="text-[var(--jp-accent)]">opportunities</span>
+                            </h2>
+                            <a href="/jobs" class="text-lg font-bold text-[var(--jp-accent)] hover:underline">
+                                Explore more →
+                            </a>
+                        </div>
+                        <div class="grid gap-8 lg:grid-cols-2">
+                            {similarJobs.map((item, i) => <JobCard job={item} mode="list" index={i} />)}
+                        </div>
+                    </div>
+                )}
+            </>
+        )}
+    </section>
+</PageLayout>

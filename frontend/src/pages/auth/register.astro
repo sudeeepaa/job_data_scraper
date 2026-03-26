@@ -1,0 +1,13 @@
+---
+import AuthLayout from "../../layouts/AuthLayout.astro";
+import AuthForm from "../../components/islands/AuthForm";
+---
+
+<AuthLayout
+    title="Create Account"
+    description="Create your JobHuntly account to save jobs, browse companies, and manage your next move."
+    headline="Get More Opportunities"
+    subheadline="Create your account to save standout jobs, explore companies, and track your next role."
+>
+    <AuthForm client:load mode="register" />
+</AuthLayout>

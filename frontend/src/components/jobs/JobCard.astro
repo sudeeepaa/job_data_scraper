@@ -1,0 +1,126 @@
+---
+import type { JobSummary } from "../../types";
+import SaveJobButton from "../islands/SaveJobButton";
+import CompareCheckbox from "../islands/CompareCheckbox";
+import { formatCompactSalary, formatPostedDate, getInitials, sourceLabel, getCompanyColor } from "../../lib/job-ui";
+
+interface Props {
+    job: JobSummary;
+    mode?: "grid" | "list";
+    index?: number;
+}
+
+const { job, mode = "grid", index = 0 } = Astro.props;
+const isGrid = mode === "grid";
+const salary = formatCompactSalary(job);
+const tags = job.skills.slice(0, 3);
+
+const postedDate = new Date(job.postedAt);
+const now = new Date();
+const diffMs = now.getTime() - postedDate.getTime();
+const diffDays = Math.floor(diffMs / (1000 * 60 * 60 * 24));
+const isNew = diffMs < (1000 * 60 * 60 * 24); // Posted in last 24h
+const isOld = diffDays > 30;
+const isVeryOld = diffDays > 60;
+
+const companyColor = getCompanyColor(job.company);
+---
+
+<article
+    class:list={[
+        "glass-card group relative overflow-hidden animate-in",
+        isGrid ? "flex h-full flex-col p-6 rounded-3xl" : "grid gap-6 p-6 lg:grid-cols-[1fr_auto] rounded-2xl",
+        isVeryOld && "opacity-60 grayscale-[0.3]",
+        `stagger-${(index % 4) + 1}`
+    ]}
+>
+    {isNew && (
+        <div class="absolute top-0 left-0 bg-[var(--jp-accent)] text-black text-[10px] font-bold uppercase tracking-widest px-3 py-1 rounded-br-xl shadow-lg">
+            NEW
+        </div>
+    )}
+
+    {isOld && (
+        <div class="absolute top-0 right-0 bg-rose-500/10 text-rose-400 text-[10px] font-bold uppercase tracking-widest px-3 py-1 rounded-bl-xl border-l border-b border-rose-500/20">
+            May be expired
+        </div>
+    )}
+
+    <div class:list={[isGrid ? "flex h-full flex-col" : "flex min-w-0 items-start gap-4"]}>
+        <div class="flex items-start gap-4">
+            <div 
+                class="flex h-12 w-12 shrink-0 items-center justify-center rounded-2xl text-lg font-bold text-white shadow-lg"
+                style={`background-color: ${companyColor}22; border: 1px solid ${companyColor}44; color: ${companyColor}`}
+            >
+                {getInitials(job.company)}
+            </div>
+            <div class="min-w-0">
+                <div class="mb-1.5 flex flex-wrap items-center gap-2 text-[11px] font-bold uppercase tracking-wider">
+                    {job.isRemote && <span class="text-emerald-400">Remote</span>}
+                    <span class="text-[var(--jp-text-muted)]">{sourceLabel(job.source)}</span>
+                </div>
+                <a href={`/jobs/${job.id}`} class="block">
+                    <h3 class:list={[
+                        "font-bold leading-tight tracking-tight text-[var(--jp-text-primary)] transition-colors group-hover:text-[var(--jp-accent)] break-words",
+                        isGrid ? "line-clamp-2 text-xl mb-1" : "text-2xl",
+                    ]}>
+                        {job.title}
+                    </h3>
+                </a>
+                <div class:list={[
+                    "text-sm text-[var(--jp-text-muted)] break-words",
+                    isGrid ? "line-clamp-1" : "text-base",
+                ]}>
+                    <a href={`/companies/${job.companySlug}`} class="font-medium hover:text-[var(--jp-text-primary)] transition-colors">{job.company}</a>
+                    <span class="opacity-50"> • {job.location}</span>
+                </div>
+            </div>
+        </div>
+
+        <div class:list={[isGrid ? "mt-6 flex-1" : "min-w-0 flex-1"]}>
+            <div class="flex flex-wrap gap-2">
+                {tags.map((tag) => (
+                    <span class="chip text-[11px] py-1 px-2.5" title={tag}>{tag}</span>
+                ))}
+            </div>
+            {isGrid && <p class="mt-4 text-sm text-[var(--jp-text-muted)] line-clamp-3 leading-relaxed">
+                Join {job.company} as a {job.title}. This {job.employmentType} role in {job.location} offers a great opportunity for {job.skills[0]} experts.
+            </p>}
+        </div>
+    </div>
+
+    <div class:list={[isGrid ? "mt-6 pt-5 border-t border-[var(--jp-border)]" : "flex flex-col items-end justify-between gap-4 lg:min-w-[14rem]"]}>
+        <div class:list={[isGrid ? "flex items-center justify-between" : "text-right"]}>
+            <div class="flex flex-col">
+                {salary ? (
+                    <div class="text-lg font-bold tracking-tight text-[var(--jp-accent)]">{salary}</div>
+                ) : (
+                    <div class="text-sm font-medium text-[var(--jp-text-muted)]">Competitive pay</div>
+                )}
+                <div class="text-[11px] font-medium text-[var(--jp-text-muted)] uppercase tracking-wider mt-0.5">
+                    {formatPostedDate(job.postedAt)} • {job.experienceLevel}
+                </div>
+            </div>
+            
+            {isGrid && <div class="flex items-center gap-3">
+                <CompareCheckbox client:load job={job} />
+                <SaveJobButton client:load jobId={job.id} initialSaved={job.isSaved} />
+            </div>}
+        </div>
+        
+        <div class:list={["flex items-center gap-3", !isGrid && "w-full lg:w-auto"]}>
+            {!isGrid && (
+                <div class="flex items-center gap-4 mr-2">
+                    <CompareCheckbox client:load job={job} />
+                    <SaveJobButton client:load jobId={job.id} initialSaved={job.isSaved} />
+                </div>
+            )}
+            <a href={`/jobs/${job.id}`} class="btn-primary flex-1 justify-center py-2.5 text-sm">
+                View Details
+                <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M14 5l7 7m0 0l-7 7m7-7H3" />
+                </svg>
+            </a>
+        </div>
+    </div>
+</article>

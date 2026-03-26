@@ -1,0 +1,102 @@
+---
+import PageLayout from "../../layouts/PageLayout.astro";
+import { fetchCompanies } from "../../lib/api";
+import { getInitials } from "../../lib/job-ui";
+
+const url = Astro.url;
+const query = url.searchParams.get("q") || "";
+const industry = url.searchParams.get("industry") || "";
+
+let companies = [];
+let error = null;
+
+try {
+    const response = await fetchCompanies(query);
+    companies = response.data;
+} catch (e) {
+    error = e instanceof Error ? e.message : "Failed to load companies";
+}
+
+const industryCounts = new Map<string, number>();
+companies.forEach((company) => {
+    industryCounts.set(company.industry, (industryCounts.get(company.industry) || 0) + 1);
+});
+const industries = Array.from(industryCounts.entries()).sort((a, b) => b[1] - a[1]);
+const filteredCompanies = industry ? companies.filter((company) => company.industry === industry) : companies;
+---
+
+<PageLayout title="Browse Companies" description="Explore companies hiring across the JobPulse experience.">
+    <section class="border-b border-[var(--jp-border)]">
+        <div class="mx-auto max-w-[1180px] px-6 py-14">
+            <h1 class="text-6xl font-extrabold tracking-tight text-[var(--jp-text-primary)]">Browse <span class="text-[var(--jp-accent)]">Companies</span></h1>
+            <form action="/companies" method="GET" class="glass-card mt-10 grid gap-4 p-4 lg:grid-cols-[1fr_auto] rounded-3xl">
+                <input type="search" name="q" value={query} placeholder="Company title or keyword" class="rounded-2xl border border-transparent bg-[var(--jp-surface)] px-5 py-4 text-lg text-[var(--jp-text-primary)] outline-none focus:border-[var(--jp-accent)]/50 transition-colors" />
+                <button type="submit" class="btn-primary justify-center px-10 py-4 text-lg">Search</button>
+            </form>
+        </div>
+    </section>
+
+    <section class="mx-auto max-w-[1180px] px-6 py-14">
+        <div class="grid gap-10 lg:grid-cols-[18rem_1fr]">
+            <aside class="space-y-8">
+                <div class="glass-card p-6 rounded-2xl">
+                    <h2 class="text-xl font-bold tracking-tight text-[var(--jp-text-primary)]">Industry</h2>
+                    <p class="mt-2 text-sm text-[var(--jp-text-muted)]">Choose the company world you want to explore.</p>
+                    
+                    <div class="mt-6 space-y-2">
+                        <a href={`/companies${query ? `?q=${encodeURIComponent(query)}` : ""}`} class:list={["block rounded-xl px-4 py-3 text-sm font-semibold transition-colors", industry === "" ? "bg-[var(--jp-accent)] text-black" : "text-[var(--jp-text-muted)] hover:bg-[var(--jp-surface)] hover:text-[var(--jp-text-primary)]"]}>
+                            All industries
+                        </a>
+                        {industries.slice(0, 10).map(([label, count]) => (
+                            <a href={`/companies?${new URLSearchParams({ q: query, industry: label }).toString()}`} class:list={["block rounded-xl px-4 py-3 text-sm font-semibold transition-colors", industry === label ? "bg-[var(--jp-accent)] text-black" : "text-[var(--jp-text-muted)] hover:bg-[var(--jp-surface)] hover:text-[var(--jp-text-primary)]"]}>
+                                {label} ({count})
+                            </a>
+                        ))}
+                    </div>
+                </div>
+            </aside>
+
+            <div>
+                <div class="mb-10">
+                    <h2 class="text-4xl font-bold tracking-tight text-[var(--jp-text-primary)]">All Companies</h2>
+                    <p class="mt-2 text-lg text-[var(--jp-text-muted)]">Showing {filteredCompanies.length} registered employers</p>
+                </div>
+
+                {error ? (
+                    <div class="glass-card p-8 text-center border-rose-500/30">
+                        <p class="text-lg font-medium text-rose-400">{error}</p>
+                    </div>
+                ) : (
+                    <div class="grid gap-6 md:grid-cols-2">
+                        {filteredCompanies.map((company) => (
+                            <a href={`/companies/${company.slug}`} class="glass-card p-8 rounded-3xl group">
+                                <div class="flex items-center justify-between gap-4">
+                                    <div 
+                                        class="flex h-16 w-16 items-center justify-center rounded-2xl text-2xl font-bold text-white shadow-xl"
+                                        style={`background: linear-gradient(135deg, var(--jp-accent) 0%, var(--jp-accent-dark) 100%)`}
+                                    >
+                                        {getInitials(company.name)}
+                                    </div>
+                                    <span class="chip active text-xs">{company.jobCount} Jobs</span>
+                                </div>
+                                <h3 class="mt-6 text-2xl font-bold tracking-tight text-[var(--jp-text-primary)] group-hover:text-[var(--jp-accent)] transition-colors">{company.name}</h3>
+                                <p class="mt-3 text-base leading-relaxed text-[var(--jp-text-muted)] line-clamp-2">{company.description}</p>
+                                <div class="mt-6 flex flex-wrap gap-2">
+                                    <span class="chip text-xs">{company.industry}</span>
+                                    <span class="chip text-xs border-[var(--jp-accent)]/20 text-[var(--jp-accent)]">{company.jobCount} open roles</span>
+                                </div>
+                            </a>
+                        ))}
+                    </div>
+                )}
+
+                {filteredCompanies.length === 0 && !error && (
+                    <div class="glass-card p-20 text-center rounded-3xl">
+                        <p class="text-xl text-[var(--jp-text-muted)]">No companies found matching your search.</p>
+                        <a href="/companies" class="btn-primary mt-6">Clear All Filters</a>
+                    </div>
+                )}
+            </div>
+        </div>
+    </section>
+</PageLayout>

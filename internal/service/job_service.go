@@ -1,0 +1,157 @@
+package service
+
+import (
+	"context"
+
+	"github.com/samuelshine/job-data-scraper/internal/domain"
+	"github.com/samuelshine/job-data-scraper/internal/repository"
+)
+
+// JobService handles business logic for jobs and analytics.
+type JobService struct {
+	jobRepo    *repository.JobRepo
+	userRepo   *repository.UserRepo
+	cacheRepo  *repository.CacheRepo
+	trendsRepo *repository.TrendsRepo
+	aggregator *Aggregator
+}
+
+// NewJobService creates a new job service.
+func NewJobService(jobRepo *repository.JobRepo, userRepo *repository.UserRepo, cacheRepo *repository.CacheRepo, trendsRepo *repository.TrendsRepo, aggregator *Aggregator) *JobService {
+	return &JobService{
+		jobRepo:    jobRepo,
+		userRepo:   userRepo,
+		cacheRepo:  cacheRepo,
+		trendsRepo: trendsRepo,
+		aggregator: aggregator,
+	}
+}
+
+// SearchJobs triggers a live search via the aggregator (cache-aware).
+// Returns nil if no aggregator is configured.
+func (s *JobService) SearchJobs(ctx context.Context, query, location string, page int) ([]domain.Job, error) {
+	if s.aggregator == nil {
+		return nil, nil
+	}
+	return s.aggregator.SearchAndStore(ctx, query, location, page, false)
+}
+
+// RefreshJobs triggers a live search and bypasses the freshness cache.
+func (s *JobService) RefreshJobs(ctx context.Context, query, location string, page int) ([]domain.Job, error) {
+	if s.aggregator == nil {
+		return nil, nil
+	}
+	return s.aggregator.SearchAndStore(ctx, query, location, page, true)
+}
+
+// HasAggregator returns whether live search is available.
+func (s *JobService) HasAggregator() bool {
+	return s.aggregator != nil
+}
+
+// GetSourceHealth returns the latest status for configured live sources.
+func (s *JobService) GetSourceHealth(ctx context.Context) []domain.SourceHealth {
+	if s.aggregator == nil {
+		return []domain.SourceHealth{}
+	}
+	return s.aggregator.SourceHealth(ctx)
+}
+
+// ScrapeSource triggers a manual scrape for a single source.
+func (s *JobService) ScrapeSource(ctx context.Context, name string) ([]domain.Job, error) {
+	if s.aggregator == nil {
+		return nil, nil
+	}
+	return s.aggregator.ScrapeSource(ctx, name)
+}
+
+// ListJobs returns filtered and paginated job listings.
+func (s *JobService) ListJobs(ctx context.Context, params domain.JobQueryParams, pag domain.Pagination) ([]domain.JobSummary, int, error) {
+	return s.jobRepo.ListJobs(ctx, params, pag)
+}
+
+// GetJob returns a single job by ID.
+func (s *JobService) GetJob(ctx context.Context, id string) (*domain.Job, error) {
+	return s.jobRepo.GetJob(ctx, id)
+}
+
+// ListCompanies returns all companies, optionally filtered.
+func (s *JobService) ListCompanies(ctx context.Context, query string) ([]domain.Company, error) {
+	return s.jobRepo.ListCompanies(ctx, query)
+}
+
+// GetCompany returns a company by slug.
+func (s *JobService) GetCompany(ctx context.Context, slug string) (*domain.Company, error) {
+	return s.jobRepo.GetCompany(ctx, slug)
+}
+
+// GetCompanyJobs returns job summaries for a company, matching by slug or name.
+func (s *JobService) GetCompanyJobs(ctx context.Context, slug string) ([]domain.JobSummary, error) {
+	company, _ := s.jobRepo.GetCompany(ctx, slug)
+	name := ""
+	if company != nil {
+		name = company.Name
+	}
+	return s.jobRepo.GetCompanyJobs(ctx, slug, name)
+}
+
+// GetCompanySkills aggregates all skills from a company's jobs.
+func (s *JobService) GetCompanySkills(ctx context.Context, slug string) ([]string, error) {
+	company, _ := s.jobRepo.GetCompany(ctx, slug)
+	name := ""
+	if company != nil {
+		name = company.Name
+	}
+	jobs, err := s.jobRepo.GetCompanyJobs(ctx, slug, name)
+	if err != nil {
+		return nil, err
+	}
+
+	skillMap := make(map[string]bool)
+	for _, j := range jobs {
+		for _, skill := range j.Skills {
+			skillMap[skill] = true
+		}
+	}
+
+	skills := make([]string, 0, len(skillMap))
+	for s := range skillMap {
+		skills = append(skills, s)
+	}
+	return skills, nil
+}
+
+// GetFilterOptions returns available filter values.
+func (s *JobService) GetFilterOptions(ctx context.Context) (domain.FilterOptions, error) {
+	return s.jobRepo.GetFilterOptions(ctx)
+}
+
+// GetTopSkills returns skill frequency counts.
+func (s *JobService) GetTopSkills(ctx context.Context, limit int) ([]domain.SkillCount, error) {
+	return s.jobRepo.GetTopSkills(ctx, limit)
+}
+
+// GetAnalyticsSummary returns high-level stats.
+func (s *JobService) GetAnalyticsSummary(ctx context.Context) (domain.AnalyticsSummary, error) {
+	return s.jobRepo.GetAnalyticsSummary(ctx)
+}
+
+// GetMarketTrends returns the latest market trend snapshot.
+func (s *JobService) GetMarketTrends(ctx context.Context, limit int) ([]domain.MarketTrend, error) {
+	return s.trendsRepo.GetTrends(ctx, limit)
+}
+
+// GetSourceDistribution returns job counts grouped by source.
+func (s *JobService) GetSourceDistribution(ctx context.Context) ([]domain.SourceDistribution, error) {
+	return s.trendsRepo.GetSourceDistribution(ctx)
+}
+
+// GetSalaryStats returns aggregate salary statistics.
+func (s *JobService) GetSalaryStats(ctx context.Context) (domain.SalaryStats, error) {
+	return s.trendsRepo.GetSalaryStats(ctx)
+}
+
+// RefreshTrends recomputes and stores a market trends snapshot.
+func (s *JobService) RefreshTrends(ctx context.Context) error {
+	return s.trendsRepo.ComputeAndStoreSnapshot(ctx)
+}

@@ -1,0 +1,86 @@
+---
+interface Props {
+    query?: string;
+    sources?: string[];
+    selectedSource?: string;
+    placeholder?: string;
+    centered?: boolean;
+}
+
+const { 
+    query = "", 
+    sources = [], 
+    selectedSource = "", 
+    placeholder = "Job title, company, or keywords...",
+    centered = false
+} = Astro.props;
+---
+
+<div class:list={["w-full max-w-4xl", centered && "mx-auto"]}>
+    <form action="/jobs" method="GET" class="search-glow-container group">
+        <div class="relative flex items-center gap-2 bg-[var(--jp-surface)] p-2 pl-6 rounded-full border border-[var(--jp-border)] transition-all group-focus-within:border-transparent">
+            <svg class="w-5 h-5 text-[var(--jp-text-muted)]" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z" />
+            </svg>
+            
+            <input 
+                type="search" 
+                name="q" 
+                value={query}
+                placeholder={placeholder}
+                class="flex-1 bg-transparent border-none outline-none py-3 text-lg text-[var(--jp-text-primary)] placeholder-[var(--jp-text-muted)]"
+                autocomplete="off"
+            />
+
+            {sources.length > 0 && (
+                <div class="hidden sm:flex items-center gap-2 px-4 border-l border-[var(--jp-border)]">
+                    <select 
+                        name="source" 
+                        class="bg-transparent border-none outline-none text-sm font-semibold text-[var(--jp-text-muted)] cursor-pointer hover:text-[var(--jp-text-primary)]"
+                    >
+                        <option value="">All Sources</option>
+                        {sources.map(s => (
+                            <option value={s} selected={s === selectedSource}>{s}</option>
+                        ))}
+                    </select>
+                </div>
+            )}
+
+            <button type="submit" class="btn-primary px-8 py-3 rounded-full text-base whitespace-nowrap">
+                Search Jobs
+            </button>
+        </div>
+        
+        <!-- Suggestions Dropdown (Phase 4 placeholder) -->
+        <div id="search-suggestions" class="absolute left-0 right-0 mt-2 bg-[var(--jp-surface)] border border-[var(--jp-border)] rounded-2xl shadow-2xl hidden z-50 overflow-hidden">
+            <!-- Suggestions will be injected here via client-side JS -->
+        </div>
+    </form>
+</div>
+
+<style>
+.search-glow-container {
+    position: relative;
+    padding: 1px;
+    border-radius: 9999px;
+    background: transparent;
+    transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+}
+
+.search-glow-container:focus-within {
+    background: linear-gradient(90deg, #F59E0B, #F97316, #D97706, #F59E0B);
+    background-size: 300% 100%;
+    animation: gradient-rotate 3s linear infinite;
+    box-shadow: 0 0 30px -5px rgba(245, 158, 11, 0.4);
+}
+
+@keyframes gradient-rotate {
+    0% { background-position: 0% 50%; }
+    100% { background-position: 100% 50%; }
+}
+
+select option {
+    background-color: var(--jp-surface);
+    color: var(--jp-text-primary);
+}
+</style>

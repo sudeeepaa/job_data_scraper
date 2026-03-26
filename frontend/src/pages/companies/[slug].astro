@@ -1,0 +1,129 @@
+---
+import PageLayout from "../../layouts/PageLayout.astro";
+import JobCard from "../../components/jobs/JobCard.astro";
+import { fetchCompany } from "../../lib/api";
+import { getInitials, sourceLabel } from "../../lib/job-ui";
+
+const { slug } = Astro.params;
+
+let company = null;
+let jobs = [];
+let realSkills = [];
+let error = null;
+
+try {
+    if (slug) {
+        const response = await fetchCompany(slug);
+        company = response.company;
+        jobs = response.jobs;
+        realSkills = response.realSkills;
+    }
+} catch (e) {
+    error = e instanceof Error ? e.message : "Failed to load company";
+}
+
+// Clean up description if it's auto-generated
+let displayDescription = company?.description;
+if (displayDescription?.startsWith("Hiring on")) {
+    const source = displayDescription.replace("Hiring on ", "");
+    displayDescription = `This company is actively hiring on ${sourceLabel(source)}. Explore their current opportunities below.`;
+}
+---
+
+<PageLayout title={company ? company.name : "Company Not Found"} description={company ? (company.description || `View jobs at ${company.name}`) : "Company detail page"}>
+    <section class="border-b border-[var(--jp-border)] bg-[var(--jp-surface)]/30">
+        <div class="mx-auto max-w-[1180px] px-6 py-12">
+            <nav class="flex items-center gap-2 text-sm font-bold uppercase tracking-widest text-[var(--jp-text-muted)]">
+                <a href="/" class="hover:text-[var(--jp-accent)] transition-colors">Home</a>
+                <span class="opacity-30">/</span>
+                <a href="/companies" class="hover:text-[var(--jp-accent)] transition-colors">Companies</a>
+                <span class="opacity-30">/</span>
+                <span class="text-[var(--jp-text-primary)]">{company?.name || "..." }</span>
+            </nav>
+            
+            {company && (
+                <div class="mt-10 flex flex-col gap-8 md:flex-row md:items-center md:justify-between animate-in">
+                    <div class="flex flex-col md:flex-row items-start md:items-center gap-8">
+                        <div 
+                            class="flex h-28 w-28 shrink-0 items-center justify-center rounded-[2rem] text-4xl font-bold text-white shadow-2xl"
+                            style={`background: linear-gradient(135deg, var(--jp-accent) 0%, var(--jp-accent-dark) 100%)`}
+                        >
+                            {getInitials(company.name)}
+                        </div>
+                        <div class="min-w-0">
+                            <div class="flex flex-wrap items-center gap-4 mb-2">
+                                <h1 class="text-4xl md:text-5xl font-bold tracking-tight text-[var(--jp-text-primary)]">{company.name}</h1>
+                                {company.industry && company.industry !== "Technology" && company.industry !== "Other" && (
+                                    <span class="chip active text-xs">{company.industry}</span>
+                                )}
+                            </div>
+                            <div class="flex flex-wrap items-center gap-6 text-[var(--jp-text-muted)] font-medium">
+                                {company.website && !company.website.includes("example.com") && !company.website.includes("placeholder") && (
+                                    <a href={company.website} target="_blank" rel="noreferrer" class="flex items-center gap-2 text-[var(--jp-accent)] hover:underline">
+                                        <span>🔗</span> {company.website.replace(/^https?:\/\//, '')}
+                                    </a>
+                                )}
+                                <span class="flex items-center gap-2">💼 {jobs.length} Active Roles</span>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            )}
+        </div>
+    </section>
+
+    <section class="mx-auto max-w-[1180px] px-6 py-14">
+        {error ? (
+            <div class="glass-card p-10 text-center border-rose-500/30">
+                <p class="text-xl font-bold text-rose-400">{error}</p>
+                <a href="/companies" class="btn-primary mt-6">Back to Companies</a>
+            </div>
+        ) : company && (
+            <div class="grid gap-12 lg:grid-cols-[1fr_22rem]">
+                <div class="space-y-12">
+                    {displayDescription && !displayDescription.includes("Hiring on") && (
+                        <div class="glass-card p-8 md:p-10 rounded-3xl">
+                            <h2 class="text-2xl font-bold tracking-tight text-[var(--jp-text-primary)] mb-6">Company Profile</h2>
+                            <p class="text-lg leading-relaxed text-[var(--jp-text-muted)] font-medium">
+                                {displayDescription}
+                            </p>
+                        </div>
+                    )}
+
+                    <div>
+                        <div class="mb-8 flex items-center justify-between">
+                            <h2 class="text-3xl font-bold tracking-tight text-[var(--jp-text-primary)]">
+                                Open <span class="text-[var(--jp-accent)]">Opportunities</span>
+                            </h2>
+                            <span class="text-sm font-bold text-[var(--jp-text-muted)] uppercase tracking-widest">{jobs.length} roles found</span>
+                        </div>
+                        
+                        {jobs.length > 0 ? (
+                            <div class="space-y-6">
+                                {jobs.map((job, i) => <JobCard job={job} mode="list" index={i} />)}
+                            </div>
+                        ) : (
+                            <div class="glass-card p-20 text-center rounded-3xl">
+                                <p class="text-xl text-[var(--jp-text-muted)] mb-6">No active listings right now.</p>
+                                <a href="/jobs" class="btn-primary">Browse All Jobs</a>
+                            </div>
+                        )}
+                    </div>
+                </div>
+
+                <aside class="space-y-8 lg:sticky lg:top-32 lg:self-start">
+                    {realSkills.length > 0 && (
+                        <div class="glass-card p-8 rounded-3xl">
+                            <h2 class="text-xl font-bold tracking-tight text-[var(--jp-text-primary)] mb-6">Tech Stack</h2>
+                            <div class="flex flex-wrap gap-2">
+                                {realSkills.sort().map((skill) => (
+                                    <span class="chip active text-xs">{skill}</span>
+                                ))}
+                            </div>
+                        </div>
+                    )}
+                </aside>
+            </div>
+        )}
+    </section>
+</PageLayout>

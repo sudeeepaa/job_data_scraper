@@ -1,0 +1,50 @@
+---
+import BrandMark from "./BrandMark.astro";
+
+const currentYear = new Date().getFullYear();
+---
+
+<footer class="bg-[var(--jh-ink)] text-white">
+    <div class="mx-auto max-w-[1180px] px-6 py-20">
+        <div class="grid gap-14 lg:grid-cols-[1.2fr_0.55fr_0.55fr_1fr]">
+            <div>
+                <BrandMark light />
+                <p class="mt-8 max-w-[22rem] text-lg leading-9 text-slate-300">
+                    The ultimate destination for tech talent. Find real jobs from HN, RemoteOK, and more.
+                </p>
+            </div>
+            <div>
+                <h3 class="text-[1.65rem] font-bold tracking-[-0.04em]">Platform</h3>
+                <ul class="mt-6 space-y-4 text-lg text-slate-300">
+                    <li><a href="/" class="hover:text-white">Home</a></li>
+                    <li><a href="/jobs" class="hover:text-white">Live Feed</a></li>
+                    <li><a href="/companies" class="hover:text-white">Companies</a></li>
+                    <li><a href="/analytics" class="hover:text-white">Analytics</a></li>
+                </ul>
+            </div>
+            <div>
+                <h3 class="text-[1.65rem] font-bold tracking-[-0.04em]">Account</h3>
+                <ul class="mt-6 space-y-4 text-lg text-slate-300">
+                    <li><a href="/auth/login" class="hover:text-white">Sign in</a></li>
+                    <li><a href="/auth/register" class="hover:text-white">Create account</a></li>
+                    <li><a href="/auth/profile" class="hover:text-white">My Profile</a></li>
+                    <li><a href="/tracker" class="hover:text-white">Application Tracker</a></li>
+                </ul>
+            </div>
+            <div>
+                <h3 class="text-[1.65rem] font-bold tracking-[-0.04em]">Stay in the loop</h3>
+                <p class="mt-6 text-lg leading-9 text-slate-300">
+                    Check back daily for fresh listings. No newsletters, no spam—just the best tech roles.
+                </p>
+                <div class="mt-8 flex gap-4">
+                    <a href="/jobs" class="jh-button">Browse jobs</a>
+                    <a href="/auth/register" class="jh-button-secondary">Join JobPulse</a>
+                </div>
+            </div>
+        </div>
+
+        <div class="mt-16 border-t border-white/10 pt-10 text-base text-slate-400">
+            <p>© {currentYear} JobPulse. All rights reserved. Built for Chris University MCA Lab.</p>
+        </div>
+    </div>
+</footer>

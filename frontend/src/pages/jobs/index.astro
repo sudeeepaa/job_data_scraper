@@ -1,0 +1,211 @@
+---
+import PageLayout from "../../layouts/PageLayout.astro";
+import JobCard from "../../components/jobs/JobCard.astro";
+import SearchBar from "../../components/common/SearchBar.astro";
+import Pagination from "../../components/common/Pagination.astro";
+import SalaryInsights from "../../components/islands/SalaryInsights";
+import EmptyState from "../../components/common/EmptyState.astro";
+import { fetchFilters, fetchJobs, fetchSourceHealth } from "../../lib/api";
+
+const url = Astro.url;
+const query = url.searchParams.get("q") || "";
+const page = parseInt(url.searchParams.get("page") || "1");
+const experience = url.searchParams.get("experience") || "";
+const source = url.searchParams.get("source") || "";
+const employmentType = url.searchParams.get("employment_type") || "";
+const remote = url.searchParams.get("remote") || "";
+const sort = url.searchParams.get("sort") || "date";
+const view = url.searchParams.get("view") === "list" ? "list" : "grid";
+
+let jobsData = { data: [], pagination: { page: 1, limit: 20, totalItems: 0, totalPages: 0, hasMore: false } };
+let filtersData = { locations: [], experienceLevels: [], sources: [], skills: [] };
+let sourceHealth = [];
+let error = null;
+
+try {
+    jobsData = await fetchJobs({
+        q: query,
+        page,
+        experience,
+        source,
+        employment_type: employmentType,
+        remote: remote || undefined,
+        sort,
+    });
+
+    const [filtersResponse, sourceHealthResponse] = await Promise.all([
+        fetchFilters(),
+        fetchSourceHealth(),
+    ]);
+    filtersData = filtersResponse;
+    sourceHealth = sourceHealthResponse.data || [];
+} catch (e) {
+    error = e instanceof Error ? e.message : "Failed to load jobs";
+}
+
+const healthySources = sourceHealth.filter((item) => item.healthy);
+const failingSources = sourceHealth.filter((item) => !item.healthy && item.lastError);
+
+const lastUpdatedMs = sourceHealth.length > 0 
+    ? Math.max(...sourceHealth.map(s => s.lastSuccessAt ? new Date(s.lastSuccessAt).getTime() : 0)) 
+    : 0;
+
+const formatTimeAgo = (time: number) => {
+    if (!time) return "Unknown";
+    const minutes = Math.floor((Date.now() - time) / 60000);
+    if (minutes < 1) return "Just now";
+    if (minutes < 60) return `${minutes}m ago`;
+    const hours = Math.floor(minutes / 60);
+    if (hours < 24) return `${hours}h ago`;
+    return `${Math.floor(hours / 24)}d ago`;
+};
+---
+
+<PageLayout title={query ? `Find Jobs: ${query}` : "Find Jobs"} description="Browse roles using the JobPulse job board experience.">
+    <section class="border-b border-[var(--jp-border)]">
+        <div class="mx-auto max-w-[1240px] px-6 py-12 md:py-20">
+            <h1 class="text-5xl md:text-7xl font-bold tracking-tighter text-center mb-12">
+                Search <span class="text-[var(--jp-accent)]">Live Jobs</span>
+            </h1>
+            <SearchBar centered query={query} sources={filtersData.sources} selectedSource={source} />
+        </div>
+    </section>
+
+    <section class="mx-auto max-w-[1240px] px-6 py-8">
+        <!-- Horizontal Filters Chip Row -->
+        <div class="flex items-center gap-4 mb-10 overflow-x-auto pb-4 no-scrollbar">
+            <span class="text-sm font-bold uppercase tracking-wider text-[var(--jp-text-muted)] whitespace-nowrap">Filters:</span>
+            
+            <div class="flex gap-2">
+                <a href={`/jobs?${new URLSearchParams({ ...Object.fromEntries(url.searchParams), employment_type: "" }).toString()}`} class:list={["chip", !employmentType && "active"]}>All Types</a>
+                <a href={`/jobs?${new URLSearchParams({ ...Object.fromEntries(url.searchParams), employment_type: "full-time" }).toString()}`} class:list={["chip", employmentType === "full-time" && "active"]}>Full-time</a>
+                <a href={`/jobs?${new URLSearchParams({ ...Object.fromEntries(url.searchParams), employment_type: "contract" }).toString()}`} class:list={["chip", employmentType === "contract" && "active"]}>Contract</a>
+            </div>
+
+            <div class="h-6 w-px bg-[var(--jp-border)]"></div>
+
+            <div class="flex gap-2">
+                <a href={`/jobs?${new URLSearchParams({ ...Object.fromEntries(url.searchParams), remote: "" }).toString()}`} class:list={["chip", !remote && "active"]}>All Locations</a>
+                <a href={`/jobs?${new URLSearchParams({ ...Object.fromEntries(url.searchParams), remote: "true" }).toString()}`} class:list={["chip", remote === "true" && "active"]}>Remote Only</a>
+            </div>
+
+            <div class="h-6 w-px bg-[var(--jp-border)]"></div>
+
+            <div class="flex gap-2">
+                {filtersData.experienceLevels.slice(0, 4).map((lvl) => (
+                    <a href={`/jobs?${new URLSearchParams({ ...Object.fromEntries(url.searchParams), experience: lvl }).toString()}`} class:list={["chip", experience === lvl && "active"]}>{lvl}</a>
+                ))}
+            </div>
+
+            <a href="/jobs" class="ml-auto text-sm font-bold text-[var(--jp-accent)] hover:underline whitespace-nowrap px-4 tracking-tight">Clear All</a>
+        </div>
+
+        <div>
+            <div class="mb-10 flex flex-col gap-6 lg:flex-row lg:items-center lg:justify-between">
+                <div>
+                    <h2 class="text-3xl font-bold tracking-tight">
+                        {query ? `Results for "${query}"` : "Latest Openings"}
+                    </h2>
+                    <div class="flex items-center gap-3 mt-1.5 font-medium">
+                        <p class="text-[var(--jp-text-muted)] tracking-tight">Found {jobsData.pagination.totalItems} matches</p>
+                        <div class="h-4 w-px bg-[var(--jp-border)]"></div>
+                        <p class="text-[var(--jp-accent)] text-xs uppercase tracking-widest font-bold flex items-center gap-1.5">
+                            <span class="relative flex h-2 w-2">
+                                <span class="animate-ping absolute inline-flex h-full w-full rounded-full bg-[var(--jp-accent)] opacity-75"></span>
+                                <span class="relative inline-flex rounded-full h-2 w-2 bg-[var(--jp-accent)]"></span>
+                            </span>
+                            Last updated: {formatTimeAgo(lastUpdatedMs)}
+                        </p>
+                    </div>
+                </div>
+                
+                <div class="flex items-center gap-4">
+                    <form action="/jobs" method="GET" class="flex items-center gap-3">
+                        <input type="hidden" name="q" value={query} />
+                        <input type="hidden" name="experience" value={experience} />
+                        <input type="hidden" name="source" value={source} />
+                        <input type="hidden" name="employment_type" value={employmentType} />
+                        <input type="hidden" name="remote" value={remote} />
+                        <input type="hidden" name="view" value={view} />
+                        
+                        <span class="text-sm font-bold text-[var(--jp-text-muted)] uppercase tracking-wider">Sort:</span>
+                        <select name="sort" class="bg-[var(--jp-surface)] border border-[var(--jp-border)] rounded-xl px-4 py-2 text-sm font-bold text-[var(--jp-text-primary)] outline-none focus:border-[var(--jp-accent)] transition-colors cursor-pointer" onchange="this.form.submit()">
+                            <option value="relevance" selected={sort === "relevance"}>Relevance</option>
+                            <option value="date" selected={sort === "date"}>Newest</option>
+                            <option value="salary" selected={sort === "salary"}>Salary</option>
+                        </select>
+                    </form>
+
+                    <div class="h-6 w-px bg-[var(--jp-border)]"></div>
+
+                    <div class="flex bg-[var(--jp-surface)] rounded-xl p-1 border border-[var(--jp-border)]">
+                        <a href={`/jobs?${new URLSearchParams({ ...Object.fromEntries(url.searchParams), view: "grid" }).toString()}`} class:list={["p-2 rounded-lg transition-all", view === "grid" ? "bg-[var(--jp-accent)] text-black" : "text-[var(--jp-text-muted)] hover:text-[var(--jp-text-primary)]"]}>
+                            <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 6a2 2 0 012-2h2a2 2 0 012 2v2a2 2 0 01-2 2H6a2 2 0 01-2-2V6zM14 6a2 2 0 012-2h2a2 2 0 012 2v2a2 2 0 01-2 2h-2a2 2 0 01-2-2V6zM4 16a2 2 0 012-2h2a2 2 0 012 2v2a2 2 0 01-2 2H6a2 2 0 01-2-2v-2zM14 16a2 2 0 012-2h2a2 2 0 012 2v2a2 2 0 01-2 2h-2a2 2 0 01-2-2v-2z" /></svg>
+                        </a>
+                        <a href={`/jobs?${new URLSearchParams({ ...Object.fromEntries(url.searchParams), view: "list" }).toString()}`} class:list={["p-2 rounded-lg transition-all", view === "list" ? "bg-[var(--jp-accent)] text-black" : "text-[var(--jp-text-muted)] hover:text-[var(--jp-text-primary)]"]}>
+                            <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 6h16M4 12h16M4 18h16" /></svg>
+                        </a>
+                    </div>
+                </div>
+            </div>
+
+            {query && sourceHealth.length > 0 && (
+                <div class="mb-10 glass-card p-6 animate-in">
+                    <div class="flex flex-col gap-6 lg:flex-row lg:items-center lg:justify-between">
+                        <div>
+                            <p class="text-xs font-bold uppercase tracking-widest text-[var(--jp-accent)] mb-2">Live Search Status</p>
+                            <p class="text-lg font-medium text-[var(--jp-text-primary)]">
+                                {healthySources.length > 0
+                                    ? `Aggregating real-time results from ${healthySources.length} tech sources.`
+                                    : "No live source returned usable results for this role yet."}
+                            </p>
+                        </div>
+                        <div class="flex flex-wrap gap-2">
+                            {sourceHealth.map((item) => (
+                                <div class:list={[
+                                    "rounded-full border px-4 py-1.5 text-xs font-bold transition-colors",
+                                    item.healthy
+                                        ? "border-emerald-500/20 bg-emerald-500/10 text-emerald-400"
+                                        : "border-rose-500/20 bg-rose-500/10 text-rose-400",
+                                ]}>
+                                    {item.name}: {item.healthy ? `${item.resultCount} roles` : "offline"}
+                                </div>
+                            ))}
+                        </div>
+                    </div>
+                    {failingSources.length > 0 && (
+                        <div class="mt-4 pt-4 border-t border-[var(--jp-border)] text-xs text-[var(--jp-text-muted)] space-y-1">
+                            {failingSources.map((item) => (
+                                <p><span class="font-bold text-rose-400">{item.name}:</span> {item.lastError}</p>
+                            ))}
+                        </div>
+                    )}
+                </div>
+            )}
+
+            {error ? (
+                <EmptyState 
+                    title="Connection Interrupted" 
+                    description={error} 
+                    icon="📡"
+                    actionLabel="Retry Discovery"
+                />
+            ) : jobsData.data.length > 0 ? (
+                <>
+                    <div class:list={[view === "grid" ? "grid gap-8 md:grid-cols-2 2xl:grid-cols-3" : "space-y-6"]}>
+                        {jobsData.data.map((job, i) => <JobCard job={job} mode={view} index={i} />)}
+                    </div>
+                    <div class="mt-20">
+                        <Pagination currentPage={jobsData.pagination.page} totalPages={jobsData.pagination.totalPages} baseUrl={url.pathname + url.search} />
+                    </div>
+                </>
+            ) : (
+                <EmptyState 
+                    title="No roles matched" 
+                    description="We couldn't find matches for your current filters. Try broadening your keywords or clearing filters." 
+                />
+            )}
+            <SalaryInsights client:load />
+        </div>
+    </section>
+</PageLayout>

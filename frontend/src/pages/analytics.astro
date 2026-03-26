@@ -1,0 +1,378 @@
+---
+import PageLayout from "../layouts/PageLayout.astro";
+import SkillsChart from "../components/islands/SkillsChart";
+import TrendsChart from "../components/islands/TrendsChart";
+import SourcesChart from "../components/islands/SourcesChart";
+import {
+    fetchAnalyticsSummary,
+    fetchMarketTrends,
+    fetchSalaryStats,
+    fetchSourceDistribution,
+    fetchSourceHealth,
+    fetchTopSkills,
+} from "../lib/api";
+import type {
+    AnalyticsSummary,
+    MarketTrend,
+    SalaryStats,
+    SkillCount,
+    SourceDistribution,
+    SourceHealth,
+} from "../types";
+
+let skills: SkillCount[] = [];
+let summary: AnalyticsSummary | null = null;
+let trends: MarketTrend[] = [];
+let sources: SourceDistribution[] = [];
+let salaryStats: SalaryStats | null = null;
+let sourceHealth: SourceHealth[] = [];
+let error = "";
+
+try {
+    const [skillsResponse, summaryResponse, trendsResponse, sourcesResponse, salaryResponse, sourceHealthResponse] = await Promise.all([
+        fetchTopSkills(15),
+        fetchAnalyticsSummary(),
+        fetchMarketTrends(15),
+        fetchSourceDistribution(),
+        fetchSalaryStats(),
+        fetchSourceHealth(),
+    ]);
+
+    skills = skillsResponse.data;
+    summary = summaryResponse;
+    trends = trendsResponse.data;
+    sources = sourcesResponse.data;
+    salaryStats = salaryResponse;
+    sourceHealth = sourceHealthResponse.data || [];
+} catch (e) {
+    error = e instanceof Error ? e.message : "Failed to load analytics";
+}
+
+const formatSalary = (amount: number) =>
+    new Intl.NumberFormat("en-US", {
+        style: "currency",
+        currency: "USD",
+        maximumFractionDigits: 0,
+    }).format(amount);
+
+const getHealthColor = (lastAttemptAt?: string) => {
+    if (!lastAttemptAt) return "text-rose-400";
+    const last = new Date(lastAttemptAt).getTime();
+    const hours = (Date.now() - last) / (1000 * 60 * 60);
+    if (hours < 6) return "text-emerald-400";
+    if (hours < 24) return "text-amber-400";
+    return "text-rose-400";
+};
+
+const getHealthBg = (lastAttemptAt?: string) => {
+    const color = getHealthColor(lastAttemptAt);
+    if (color.includes("emerald")) return "bg-emerald-500/10 border-emerald-500/20";
+    if (color.includes("amber")) return "bg-amber-500/10 border-amber-500/20";
+    return "bg-rose-500/10 border-rose-500/20";
+};
+
+const lastRefreshed = sourceHealth.length > 0 
+    ? new Date(Math.max(...sourceHealth.map(s => s.lastSuccessAt ? new Date(s.lastSuccessAt).getTime() : 0))).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })
+    : "Never";
+---
+
+<PageLayout title="Market Analytics" description="Experience the heartbeat of the tech job market with JobPulse live analytics.">
+    <div class="mx-auto max-w-[1240px] px-6 py-12">
+        <div class="mb-14 flex flex-col gap-6 lg:flex-row lg:items-end lg:justify-between">
+            <div>
+                <span class="text-xs font-bold uppercase tracking-[0.3em] text-[var(--jp-accent)]">Real-time Intelligence</span>
+                <h1 class="mt-4 text-5xl md:text-7xl font-bold tracking-tighter text-[var(--jp-text-primary)]">Market Analytics</h1>
+                <p class="mt-4 text-xl text-[var(--jp-text-muted)] font-medium max-w-2xl">Monitor source health, salary trends, and the core technologies driving the industry right now.</p>
+            </div>
+            <div class="flex flex-col items-end gap-3">
+                <button type="button" id="refresh-btn" class="btn-primary px-8 py-4 text-lg">
+                    <svg class="h-5 w-5 mr-1" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15" />
+                    </svg>
+                    Refresh Global Data
+                </button>
+                <span class="text-xs font-bold uppercase tracking-widest text-[var(--jp-text-muted)]">Last synced: <span class="text-[var(--jp-text-primary)]">{lastRefreshed}</span></span>
+            </div>
+        </div>
+
+        {error ? (
+            <div class="glass-card p-12 text-center border-rose-500/30 rounded-[2.5rem]">
+                <p class="text-2xl font-bold text-rose-400">{error}</p>
+                <p class="mt-3 text-[var(--jp-text-muted)]">Ensure the JobPulse backend services are operational.</p>
+                <button onclick="window.location.reload()" class="btn-primary mt-8">Retry Connection</button>
+            </div>
+        ) : (
+            <>
+                {sourceHealth.length > 0 && (
+                    <section class="mb-16">
+                        <div class="mb-8">
+                            <h2 class="text-3xl font-bold tracking-tight text-[var(--jp-text-primary)]">Ingestion Sources</h2>
+                            <p class="mt-2 text-[var(--jp-text-muted)] font-medium">Monitoring {sourceHealth.length} live scrapers and API bridges.</p>
+                        </div>
+                        <div class="grid gap-6 md:grid-cols-2 lg:grid-cols-4">
+                            {sourceHealth.map((item) => {
+                                const icons = {
+                                    hn_hiring: "🔶",
+                                    remoteok: "🌍",
+                                    weworkremotely: "💼",
+                                    jobicy: "🎯",
+                                    jsearch: "🔍",
+                                    adzuna: "🇬🇧",
+                                };
+                                const icon = icons[item.name as keyof typeof icons] || "🔌";
+                                
+                                return (
+                                    <div class="glass-card overflow-hidden p-0 rounded-3xl border-[var(--jp-border)] hover:border-[var(--jp-accent)]/30 transition-all duration-500 group">
+                                        <div class="flex items-center justify-between border-b border-[var(--jp-border)] p-5 bg-[var(--jp-surface)]/20">
+                                            <div class="flex items-center gap-3">
+                                                <span class="text-2xl grayscale group-hover:grayscale-0 transition-all">{icon}</span>
+                                                <h3 class="font-bold text-[var(--jp-text-primary)] capitalize tracking-tight">{item.name.replace('_', ' ')}</h3>
+                                            </div>
+                                            <div class="flex items-center gap-2">
+                                                 <span class:list={["h-2 w-2 rounded-full shadow-[0_0_10px]", item.healthy ? "bg-emerald-400 shadow-emerald-400/50" : "bg-rose-500 shadow-rose-500/50"]}></span>
+                                            </div>
+                                        </div>
+                                        <div class="p-6">
+                                            <div class="grid grid-cols-2 gap-y-5 gap-x-4">
+                                                <div>
+                                                    <p class="text-[10px] font-bold text-[var(--jp-text-muted)] uppercase tracking-widest">Status</p>
+                                                    <p class:list={["font-extrabold mt-1 text-sm", item.healthy ? "text-emerald-400" : "text-rose-400"]}>
+                                                        {item.healthy ? "HEALTHY" : "CRITICAL"}
+                                                    </p>
+                                                </div>
+                                                <div>
+                                                    <p class="text-[10px] font-bold text-[var(--jp-text-muted)] uppercase tracking-widest">Job Yield</p>
+                                                    <p class="font-extrabold text-[var(--jp-text-primary)] mt-1 text-sm">{item.resultCount}</p>
+                                                </div>
+                                                <div>
+                                                    <p class="text-[10px] font-bold text-[var(--jp-text-muted)] uppercase tracking-widest">Response</p>
+                                                    <p class="font-extrabold text-[var(--jp-text-muted)] mt-1 text-sm">{item.lastDuration || '—'}</p>
+                                                </div>
+                                                <div>
+                                                    <p class="text-[10px] font-bold text-[var(--jp-text-muted)] uppercase tracking-widest">Last Fetch</p>
+                                                    <p class:list={["font-extrabold mt-1 text-sm truncate", getHealthColor(item.lastAttemptAt)]}>
+                                                        {item.lastAttemptAt ? new Date(item.lastAttemptAt).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }) : '—'}
+                                                    </p>
+                                                </div>
+                                            </div>
+                                            
+                                            {item.lastError && (
+                                                <div class="mt-5 rounded-xl border border-rose-500/20 bg-rose-500/5 p-3 text-[10px] text-rose-400 font-medium leading-relaxed italic">
+                                                    {item.lastError}
+                                                </div>
+                                            )}
+
+                                            <button 
+                                                data-refresh-source={item.name}
+                                                class="mt-6 w-full rounded-2xl border border-[var(--jp-border)] py-3 text-xs font-bold text-[var(--jp-text-muted)] transition-all hover:bg-[var(--jp-accent)] hover:text-black hover:border-transparent active:scale-[0.98]"
+                                            >
+                                                Sync Now
+                                            </button>
+                                        </div>
+                                    </div>
+                                )
+                            })}
+                        </div>
+                    </section>
+                )}
+
+                {summary && (
+                    <section class="mb-12 grid gap-6 sm:grid-cols-2 lg:grid-cols-3">
+                        <div class="glass-card p-8 rounded-3xl">
+                            <div class="mb-2 text-xs font-bold uppercase tracking-widest text-[var(--jp-text-muted)]">Market Catalog</div>
+                            <div class="text-4xl font-bold text-[var(--jp-text-primary)] tracking-tighter">{summary.totalJobs.toLocaleString()} <span class="text-lg font-medium text-[var(--jp-text-muted)]">total jobs</span></div>
+                        </div>
+                        <div class="glass-card p-8 rounded-3xl">
+                            <div class="mb-2 text-xs font-bold uppercase tracking-widest text-[var(--jp-text-muted)]">Verified Partners</div>
+                            <div class="text-4xl font-bold text-[var(--jp-text-primary)] tracking-tighter">{summary.totalCompanies.toLocaleString()} <span class="text-lg font-medium text-[var(--jp-text-muted)]">companies</span></div>
+                        </div>
+                             <div class="mb-2 text-xs font-bold uppercase tracking-widest text-[var(--jp-accent)]">Average Market Rate</div>
+                             <div class="text-4xl font-bold text-[var(--jp-accent)] tracking-tighter">
+                                {(salaryStats && salaryStats.totalWithSalary < 5) ? (
+                                    <span class="text-lg">Limited data</span>
+                                ) : (summary.averageSalary === 0) ? (
+                                    <span class="text-lg opacity-50">See distribution below</span>
+                                ) : (
+                                    <>
+                                        {formatSalary(summary.averageSalary)} <span class="text-lg font-medium opacity-50">/yr</span>
+                                    </>
+                                )}
+                             </div>
+                        <div class="glass-card p-8 rounded-3xl">
+                            <div class="mb-2 text-xs font-bold uppercase tracking-widest text-[var(--jp-text-muted)]">Remote Capability</div>
+                            <div class="text-4xl font-bold text-[var(--jp-text-primary)] tracking-tighter">{summary.remoteJobsCount.toLocaleString()} <span class="text-lg font-medium text-[var(--jp-text-muted)]">remotely</span></div>
+                            <p class="mt-2 text-xs font-bold text-emerald-400 uppercase tracking-widest">{Math.round((summary.remoteJobsCount / summary.totalJobs) * 100)}% of dataset</p>
+                        </div>
+                        <div class="glass-card p-8 rounded-3xl">
+                            <div class="mb-2 text-xs font-bold uppercase tracking-widest text-[var(--jp-text-muted)]">Velocity (7d)</div>
+                            <div class="text-4xl font-bold text-[var(--jp-accent)] tracking-tighter">+{summary.jobsThisWeek.toLocaleString()} <span class="text-lg font-medium text-[var(--jp-text-muted)]">this week</span></div>
+                        </div>
+                        <div class="glass-card p-8 rounded-3xl bg-[var(--jp-surface)]">
+                            <div class="mb-2 text-xs font-bold uppercase tracking-widest text-[var(--jp-text-muted)]">Daily Feed</div>
+                            <div class="text-4xl font-bold text-[var(--jp-text-primary)] tracking-tighter">+{summary.jobsToday.toLocaleString()} <span class="text-lg font-medium text-[var(--jp-text-muted)]">since midnight</span></div>
+                        </div>
+                    </section>
+                )}
+
+                {salaryStats && (
+                    <section class="mb-16">
+                        <h2 class="mb-8 text-3xl font-bold tracking-tight text-[var(--jp-text-primary)]">Salary Distribution</h2>
+                        <div class="grid gap-6 sm:grid-cols-2 lg:grid-cols-4">
+                            <div class="glass-card p-8 rounded-3xl border-emerald-500/10 bg-emerald-500/5">
+                                <div class="mb-1 text-[10px] font-bold uppercase tracking-[0.2em] text-emerald-400">Market Minimum</div>
+                                <div class="text-3xl font-bold text-[var(--jp-text-primary)] tracking-tighter">{formatSalary(salaryStats.minSalary)}</div>
+                            </div>
+                            <div class="glass-card p-8 rounded-3xl border-[var(--jp-accent)]/10 bg-[var(--jp-accent)]/5">
+                                <div class="mb-1 text-[10px] font-bold uppercase tracking-[0.2em] text-[var(--jp-accent)]">Highest Recorded</div>
+                                <div class="text-3xl font-bold text-[var(--jp-text-primary)] tracking-tighter">{formatSalary(salaryStats.maxSalary)}</div>
+                            </div>
+                            <div class="glass-card p-8 rounded-3xl border-indigo-500/10 bg-indigo-500/5">
+                                <div class="mb-1 text-[10px] font-bold uppercase tracking-[0.2em] text-indigo-400">Market Median</div>
+                                <div class="text-3xl font-bold text-[var(--jp-text-primary)] tracking-tighter">{formatSalary(salaryStats.medianSalary)}</div>
+                            </div>
+                            <div class="glass-card p-8 rounded-3xl">
+                                <div class="mb-1 text-[10px] font-bold uppercase tracking-[0.2em] text-[var(--jp-text-muted)]">Salary Transparency</div>
+                                <div class="text-3xl font-bold text-[var(--jp-text-primary)] tracking-tighter">{salaryStats.totalWithSalary} roles</div>
+                            </div>
+                        </div>
+                    </section>
+                )}
+
+                <div class="mb-16 grid gap-10 lg:grid-cols-[1.5fr_1fr]">
+                    <div class="glass-card p-8 rounded-[2rem] border-[var(--jp-border)]">
+                        <TrendsChart client:visible trends={trends} title="Market Trends: Most Mentioned Skills" />
+                    </div>
+                    <div class="glass-card p-8 rounded-[2rem] border-[var(--jp-border)]">
+                        <SourcesChart client:visible sources={sources} title="Contribution by Source" />
+                    </div>
+                </div>
+
+                <div class="grid gap-10 lg:grid-cols-2">
+                    <div class="glass-card p-8 rounded-[2rem] border-[var(--jp-border)]">
+                        <SkillsChart client:visible skills={skills} title="Core Competencies in Demand" />
+                    </div>
+
+                    <div class="glass-card p-8 rounded-[2rem]">
+                        <h3 class="mb-8 text-2xl font-bold text-[var(--jp-text-primary)] tracking-tight">Skills Breakdown</h3>
+                        <div class="space-y-5">
+                            {skills.map((skill, index) => (
+                                <div class="flex items-center gap-4 group">
+                                    <div class="w-6 text-right text-[10px] font-bold text-[var(--jp-text-muted)] opacity-50">{index + 1}</div>
+                                    <div class="h-2.5 flex-1 overflow-hidden rounded-full bg-[var(--jp-surface)]">
+                                        <div 
+                                            class="h-full rounded-full bg-[linear-gradient(90deg,var(--jp-accent)_0%,var(--jp-accent-dark)_100%)] transition-all duration-1000" 
+                                            style={`width: ${(skill.count / skills[0].count) * 100}%`}
+                                        ></div>
+                                    </div>
+                                    <div class="w-28 truncate text-sm font-bold text-[var(--jp-text-primary)] group-hover:text-[var(--jp-accent)] transition-colors">{skill.name}</div>
+                                    <div class="w-10 text-right text-xs font-bold text-[var(--jp-text-muted)]">{skill.count}</div>
+                                </div>
+                            ))}
+                        </div>
+                    </div>
+                </div>
+
+                <div class="mt-16 glass-card p-10 rounded-[2.5rem] border-[var(--jp-accent)]/10 bg-[linear-gradient(135deg,rgba(245,158,11,0.03)_0%,rgba(0,0,0,0)_100%)]">
+                    <div class="flex items-center gap-3 mb-6">
+                         <span class="text-3xl">💎</span>
+                         <h3 class="text-2xl font-bold text-[var(--jp-text-primary)] tracking-tight">Market Intelligence Brief</h3>
+                    </div>
+                    <div class="grid md:grid-cols-2 gap-10">
+                        <ul class="space-y-4">
+                            <li class="flex items-start gap-4">
+                                <span class="mt-1 h-2 w-2 shrink-0 rounded-full bg-[var(--jp-accent)]"></span>
+                                <p class="text-[var(--jp-text-muted)] font-medium"><strong class="text-[var(--jp-text-primary)]">{skills[0]?.name}</strong> continues to dominate technical requirements across {Math.round((skills[0]?.count / summary?.totalJobs) * 100)}% of current listings.</p>
+                            </li>
+                            <li class="flex items-start gap-4">
+                                <span class="mt-1 h-2 w-2 shrink-0 rounded-full bg-[var(--jp-accent)]"></span>
+                                <p class="text-[var(--jp-text-muted)] font-medium">Remote flexibility remains steady with <strong class="text-[var(--jp-text-primary)]">{Math.round((summary?.remoteJobsCount || 0) / (summary?.totalJobs || 1) * 100)}%</strong> of roles offering work-from-home options.</p>
+                            </li>
+                        </ul>
+                        <ul class="space-y-4">
+                            <li class="flex items-start gap-4">
+                                <span class="mt-1 h-2 w-2 shrink-0 rounded-full bg-[var(--jp-accent)]"></span>
+                                <p class="text-[var(--jp-text-muted)] font-medium">
+                                    {(summary?.averageSalary ?? 0) === 0 ? (
+                                        <>Salary data available for <strong class="text-[var(--jp-text-primary)]">{salaryStats?.totalWithSalary || 0}+ tracked roles</strong>, showing broad market participation.</>
+                                    ) : (
+                                        <>The market average salary is holding at <strong class="text-[var(--jp-text-primary)]">{formatSalary(summary?.averageSalary || 0)}</strong>, reflecting high demand for senior talent.</>
+                                    )}
+                                </p>
+                            </li>
+                            <li class="flex items-start gap-4">
+                                <span class="mt-1 h-2 w-2 shrink-0 rounded-full bg-[var(--jp-accent)]"></span>
+                                <p class="text-[var(--jp-text-muted)] font-medium">New job ingestion velocity is averaging <strong class="text-[var(--jp-text-primary)]">{summary.jobsThisWeek} roles per week</strong> across all tracked tech platforms.</p>
+                            </li>
+                        </ul>
+                    </div>
+                </div>
+            </>
+        )}
+    </div>
+</PageLayout>
+
+<script>
+    const globalBtn = document.getElementById("refresh-btn");
+    
+    // Scraper list to refresh sequentially
+    const sources = ["hn_hiring", "remoteok", "jobicy", "weworkremotely"];
+
+    if (globalBtn) {
+        globalBtn.addEventListener("click", async () => {
+            const originalHTML = globalBtn.innerHTML;
+            globalBtn.innerHTML = `
+                <svg class="h-5 w-5 mr-2 animate-spin" viewBox="0 0 24 24">
+                    <circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4" fill="none"></circle>
+                    <path class="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
+                </svg>
+                Syncing Sources...
+            `;
+            globalBtn.setAttribute("disabled", "true");
+            
+            try {
+                // Refresh market trends snapshot first
+                await fetch("/api/v1/analytics/refresh", { method: "POST" });
+                
+                // Then trigger scrapers one by one to avoid rate limits/timeouts
+                for (const src of sources) {
+                    console.log(`Syncing ${src}...`);
+                    await fetch(`/api/v1/admin/scrape/${src}`, { method: "POST" });
+                }
+                
+                globalBtn.innerHTML = "✨ Sync Complete!";
+                setTimeout(() => window.location.reload(), 800);
+            } catch (err) {
+                console.error(err);
+                globalBtn.innerHTML = "❌ Sync Failed";
+                setTimeout(() => {
+                    globalBtn.innerHTML = originalHTML;
+                    globalBtn.removeAttribute("disabled");
+                }, 2000);
+            }
+        });
+    }
+
+    // Individual source refresh
+    document.querySelectorAll("[data-refresh-source]").forEach(button => {
+        button.addEventListener("click", async () => {
+            const source = button.getAttribute("data-refresh-source");
+            const originalText = button.textContent;
+            button.textContent = "Syncing...";
+            button.setAttribute("disabled", "true");
+            
+            try {
+                const resp = await fetch(`/api/v1/admin/scrape/${source}`, { method: "POST" });
+                if (!resp.ok) throw new Error("Failed to refresh");
+                button.textContent = "Done!";
+                setTimeout(() => window.location.reload(), 500);
+            } catch (err) {
+                console.error(err);
+                button.textContent = "Failed";
+                setTimeout(() => {
+                    button.textContent = originalText;
+                    button.removeAttribute("disabled");
+                }, 2000);
+            }
+        });
+    });
+</script>
