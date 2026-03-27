@@ -1,0 +1,19 @@
+# Node
+node_modules/
+frontend/node_modules/
+
+# Astro
+frontend/.astro/
+
+# Env
+.env
+frontend/.env
+
+# Database
+*.db
+*.db-shm
+*.db-wal
+
+# Misc
+.DS_Store
+Thumbs.db
