@@ -1,4 +1,4 @@
-# JobHuntly Job Data App
+# JobPulse Job Data App
 
 A full-stack job search app with:
 
